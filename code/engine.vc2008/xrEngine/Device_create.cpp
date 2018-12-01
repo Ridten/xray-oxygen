@@ -1,4 +1,4 @@
-#include "stdafx.h"
+﻿#include "stdafx.h"
 
 #include "../Include/xrRender/DrawUtils.h"
 #include "render.h"
@@ -43,9 +43,10 @@ void	SetupGPU(IRenderDeviceRender *pRender)
 void CRenderDevice::_SetupStates	()
 {
 	// General Render States
-	mView.identity			();
-	mProject.identity		();
-	mFullTransform.identity	();
+	mView = DirectX::XMMatrixIdentity();
+	mProject = DirectX::XMMatrixIdentity();
+	mFullTransform = DirectX::XMMatrixIdentity();
+
 	vCameraPosition.set		(0,0,0);
 	vCameraDirection.set	(0,0,1);
 	vCameraTop.set			(0,1,0);
@@ -72,7 +73,7 @@ void CRenderDevice::ConnectToRender()
 	if (!m_pRender) { m_pRender = RenderFactory->CreateRenderDeviceRender(); }
 }
 
-void CRenderDevice::Create()
+void CRenderDevice::Create(bool bIsEditor)
 {
 	if (b_is_Ready) { return; }		// prevent double call
 	Statistic = xr_new<CStats>();
@@ -96,19 +97,10 @@ void CRenderDevice::Create()
 	fFOV				= 90.f;
 	fASPECT				= 1.f;
 
-	m_pRender->Create(
-		m_hWnd,
-		dwWidth,
-		dwHeight,
-		fWidth_2,
-		fHeight_2,
-#ifdef INGAME_EDITOR
-		editor() ? false :
-#endif // #ifdef INGAME_EDITOR
-		true
-	);
+	m_pRender->Create(m_hWnd, dwWidth, dwHeight, fWidth_2, fHeight_2, !bIsEditor);
 
-    UpdateWindowPropStyle(GetCurrentWindowPropStyle());
+	if (!bIsEditor || editor())
+		UpdateWindowPropStyle(GetCurrentWindowPropStyle());
 
 	string_path			fname; 
 	FS.update_path		(fname,"$game_data$","shaders.xr");

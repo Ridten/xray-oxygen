@@ -10,8 +10,8 @@
 #include "object_broker.h"
 #include "UIInventoryUpgradeWnd.h"
 
-#include "xrUIXmlParser.h"
-#include "UIXmlInit.h"
+#include "../xrUICore/xrUIXmlParser.h"
+#include "../xrUICore/UIXmlInit.h"
 #include "../xrEngine/string_table.h"
 
 #include "../actor.h"
@@ -27,14 +27,14 @@
 #include "UIInventoryUtilities.h"
 #include "UIActorMenu.h"
 #include "UIItemInfo.h"
-#include "UIFrameLineWnd.h"
-#include "UI3tButton.h"
-#include "UIHelper.h"
-#include "../ui_defs.h"
-#include "../Weapon.h"
-#include "../WeaponRPG7.h"
-#include "../CustomOutfit.h"
-#include "../ActorHelmet.h"
+#include "../xrUICore/UIFrameLineWnd.h"
+#include "../xrUICore/UI3tButton.h"
+#include "../xrUICore/UIHelper.h"
+#include "../../xrUICore/ui_defs.h"
+#include "../items/Weapon.h"
+#include "../items/WeaponRPG7.h"
+#include "../items/CustomOutfit.h"
+#include "../items/Helmet.h"
 
 // -----
 const char* const g_inventory_upgrade_xml = "inventory_upgrade.xml";
@@ -211,7 +211,7 @@ void CUIInventoryUpgradeWnd::SetCurScheme( const shared_str& id )
 			return;
 		}
 	}
-	VERIFY2( 0, make_string( "Scheme <%s> does not loaded !", id.c_str() ) );
+	VERIFY_FORMAT(0, "Scheme <%s> does not loaded !", id.c_str());
 }
 
 bool CUIInventoryUpgradeWnd::install_item( CInventoryItem& inv_item, bool can_upgrade )
@@ -436,7 +436,7 @@ UIUpgrade::ViewState CUIInventoryUpgradeWnd::SelectCellState(LPCSTR state_str)
 
 	if (!xr_strcmp(state_str, "disabled_highlight")) { return UIUpgrade::STATE_DISABLED_FOCUSED; }
 
-	VERIFY2(0, make_string("Such UI upgrade state (%s) does not exist !", state_str));
+	VERIFY_FORMAT(0, "Such UI upgrade state (%s) does not exist !", state_str);
 	return UIUpgrade::STATE_UNKNOWN;
 }
 

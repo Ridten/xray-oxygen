@@ -197,13 +197,13 @@ void dxEnvironmentRender::OnFrame(CEnvironment &env)
 	tsky1->surface_set		(e1);	_RELEASE(e1);
 
 	// ******************** Environment params (setting)
-#if !defined(USE_DX10) && !defined(USE_DX11)
+#ifndef USE_DX11
 	Fvector3	&fog_color = env.CurrentEnv->fog_color;
 
 	CHK_DX(HW.pDevice->SetRenderState( D3DRS_FOGCOLOR,	 color_rgba_f(fog_color.x,fog_color.y,fog_color.z,0) ));
 	CHK_DX(HW.pDevice->SetRenderState( D3DRS_FOGSTART,	*(u32 *)(&env.CurrentEnv->fog_near)	));
 	CHK_DX(HW.pDevice->SetRenderState( D3DRS_FOGEND,	*(u32 *)(&env.CurrentEnv->fog_far)	));
-#endif	//	USE_DX10
+#endif
 }
 
 void dxEnvironmentRender::OnLoad()
@@ -276,8 +276,6 @@ void dxEnvironmentRender::RenderSky(CEnvironment &env)
 	// The state may be not set by RCache if the state is changed using API SetRenderState() function before 
 	// and the RCache flag will remain unchanged to it's old value. 
 	// 
-
-	RCache.set_Z(FALSE);
 	RCache.set_Z(TRUE);
  	env.eff_LensFlare->Render(TRUE, FALSE, FALSE);
 	RCache.set_Z(FALSE);

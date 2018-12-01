@@ -4,7 +4,8 @@
 #include "../xrEngine/igame_persistent.h"
 
 #include "ai_space.h"
-#include "game_cl_base.h"
+#include "script_engine.h"
+
 #include "NET_Queue.h"
 #include "hudmanager.h"
 
@@ -21,6 +22,8 @@ extern	pureFrame* g_pNetProcessor;
 bool CLevel::net_start_client1()
 {
 	pApp->LoadBegin();
+	//ai().script_engine().init();
+
 	// name_of_server
 	string64 name_of_server = "";
 	shared_str clientOption = GamePersistent().GetClientOption();
@@ -110,9 +113,6 @@ bool CLevel::net_start_client6()
     {
 		g_hud->Load();
 		g_hud->OnConnected();
-	
-		if (game)
-			game->OnConnected();
 	
 		g_pGamePersistent->SetLoadStageTitle("st_client_synchronising");
 		pApp->LoadForceFinish();

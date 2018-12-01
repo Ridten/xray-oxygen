@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "r2.h"
+#include "../../xrCore/xrDelegate/xrDelegate.h"
 #include "../xrRender/fbasicvisual.h"
 #include "../../xrEngine/xr_object.h"
 #include "../../xrEngine/CustomHUD.h"
@@ -38,55 +39,7 @@ ShaderElement*			CRender::rimp_select_sh_static	(dxRender_Visual	*pVisual, float
 	}
 	return pVisual->shader->E[id]._get();
 }
-static class cl_parallax		: public R_constant_setup
-{
-	virtual void setup	(R_constant* C)
-	{
-		float h			=	ps_r_df_parallax_h;
-		RCache.set_c	(C,h,-h/2.f,1.f/r_dtex_range,1.f/r_dtex_range);
-	}
-}	binder_parallax;
 
-static class cl_tree_amplitude_intensity : public R_constant_setup
-{
- 	virtual void setup(R_constant* C)
- 	{
- 		CEnvDescriptor&	E = *g_pGamePersistent->Environment().CurrentEnv;
- 		float fValue = E.m_fTreeAmplitudeIntensity;
- 		RCache.set_c(C, fValue, fValue, fValue, 0);
- 	}
-} binder_tree_amplitude_intensity;
-
-static class cl_pos_decompress_params	: public R_constant_setup		{	virtual void setup	(R_constant* C)
-{
-	float VertTan =  -1.0f * tanf( deg2rad(Device.fFOV/2.0f ) );
-	float HorzTan =  - VertTan / Device.fASPECT;
-
-	RCache.set_c	( C, HorzTan, VertTan, ( 2.0f * HorzTan )/(float)Device.dwWidth, ( 2.0f * VertTan ) /(float)Device.dwHeight );
-
-}}	binder_pos_decompress_params;
-
-static class cl_water_intensity : public R_constant_setup		
-{	
-	virtual void setup	(R_constant* C)
-	{
-		CEnvDescriptor&	E = *g_pGamePersistent->Environment().CurrentEnv;
-		float fValue = E.m_fWaterIntensity;
-		RCache.set_c	(C, fValue, fValue, fValue, 0);
-	}
-}	binder_water_intensity;
-
-static class cl_sun_shafts_intensity : public R_constant_setup		
-{	
-	virtual void setup	(R_constant* C)
-	{
-		CEnvDescriptor&	E = *g_pGamePersistent->Environment().CurrentEnv;
-		float fValue = E.m_fSunShaftsIntensity;
-		RCache.set_c	(C, fValue, fValue, fValue, 0);
-	}
-}	binder_sun_shafts_intensity;
-
-extern ENGINE_API BOOL r2_sun_static;
 extern ENGINE_API BOOL r2_advanced_pp;	//	advanced post process and effects
 //////////////////////////////////////////////////////////////////////////
 // Just two static storage
@@ -105,7 +58,8 @@ void					CRender::create					()
 	D3DFORMAT	nullrt	= (D3DFORMAT)MAKEFOURCC('N','U','L','L');
 	o.nullrt			= HW.IsFormatSupported(nullrt, D3DRTYPE_SURFACE, D3DUSAGE_RENDERTARGET);
 
-	if (o.nullrt)		{
+	if (o.nullrt)		
+	{
 		Msg				("* NULLRT supported and used");
 	};
 
@@ -171,9 +125,7 @@ void					CRender::create					()
 	}
 
 	// options
-	o.bug				= (strstr(Core.Params,"-bug"))?			TRUE	:FALSE	;
 	o.sunfilter			= (strstr(Core.Params,"-sunfilter"))?	TRUE	:FALSE	;
-	o.sunstatic			= r2_sun_static;
 	o.advancedpp		= r2_advanced_pp;
 	o.sjitter			= (strstr(Core.Params,"-sjitter"))?		TRUE	:FALSE	;
 	o.depth16			= (strstr(Core.Params,"-depth16"))?		TRUE	:FALSE	;
@@ -197,12 +149,6 @@ void					CRender::create					()
 		o.ssao_opt_data = false;
 		o.ssao_hbao = false;
 	}
-
-	// constants
-	dxRenderDeviceRender::Instance().Resources->RegisterConstantSetup	("parallax",	&binder_parallax);
-	dxRenderDeviceRender::Instance().Resources->RegisterConstantSetup	("water_intensity",	&binder_water_intensity);
-	dxRenderDeviceRender::Instance().Resources->RegisterConstantSetup	("sun_shafts_intensity",	&binder_sun_shafts_intensity);
-	dxRenderDeviceRender::Instance().Resources->RegisterConstantSetup	("pos_decompression_params",	&binder_pos_decompress_params);
 
 	c_lmaterial					= "L_material";
 	c_sbase						= "s_base";
@@ -297,11 +243,11 @@ void CRender::OnFrame()
 	Models->DeleteQueue();
 	// MT-details (@front)
 	Device.seqParallel.insert(Device.seqParallel.begin(),
-		fastdelegate::FastDelegate0<>(Details, &CDetailManager::MT_CALC));
+		xrDelegate(BindDelegate(Details, &CDetailManager::MT_CALC)));
 
 	// MT-HOM (@front)
 	Device.seqParallel.insert(Device.seqParallel.begin(),
-		fastdelegate::FastDelegate0<>(&HOM, &CHOM::MT_RENDER));
+		xrDelegate(BindDelegate(&HOM, &CHOM::MT_RENDER)));
 }
 
 
@@ -607,6 +553,7 @@ HRESULT	CRender::shader_compile(LPCSTR name, DWORD const* pSrcData, UINT SrcData
 	char c_ssao[32];
 	char c_sun_quality[32];
     char c_bokeh_quality[32];
+	char c_pp_aa_quality[32];
 
 	char sh_name[MAX_PATH] = "";
 	u32 len	= 0;
@@ -697,13 +644,6 @@ HRESULT	CRender::shader_compile(LPCSTR name, DWORD const* pSrcData, UINT SrcData
 		def_it						++	;
 	}
 	sh_name[len]='0'+char(o.sunfilter); ++len;
-
-	if (o.sunstatic)		{
-		defines[def_it].Name		=	"USE_R2_STATIC_SUN";
-		defines[def_it].Definition	=	"1";
-		def_it						++	;
-	}
-	sh_name[len]='0'+char(o.sunstatic); ++len;
 
 	if (o.forcegloss)		{
 		xr_sprintf						(c_gloss,"%f",o.forcegloss_v);
@@ -881,6 +821,16 @@ HRESULT	CRender::shader_compile(LPCSTR name, DWORD const* pSrcData, UINT SrcData
 		else
 			sh_name[len] = '0'; ++len;
 
+		if (ps_r_pp_aa_quality > 0)
+		{
+			xr_sprintf(c_pp_aa_quality, "%d", ps_r_pp_aa_quality);
+			defines[def_it].Name = "PP_AA_QUALITY";
+			defines[def_it].Definition = c_pp_aa_quality;
+			def_it++;
+			sh_name[len] = '0' + char(ps_r_pp_aa_quality); ++len;
+		}
+		else
+			sh_name[len] = '0'; ++len;
 	}
 
 	// Puddles
@@ -1000,15 +950,9 @@ HRESULT	CRender::shader_compile(LPCSTR name, DWORD const* pSrcData, UINT SrcData
 static inline bool match_shader		( LPCSTR const debug_shader_id, LPCSTR const full_shader_id, LPCSTR const mask, size_t const mask_length )
 {
 	u32 const full_shader_id_length	= xr_strlen( full_shader_id );
-	R_ASSERT2				(
-		full_shader_id_length == mask_length,
-		make_string(
-			"bad cache for shader %s, [%s], [%s]",
-			debug_shader_id,
-			mask,
-			full_shader_id
-		)
-	);
+	R_ASSERT_FORMAT( full_shader_id_length == mask_length, "bad cache for shader %s, [%s], [%s]",
+			debug_shader_id, mask,full_shader_id);
+
 	char const* i			= full_shader_id;
 	char const* const e		= full_shader_id + full_shader_id_length;
 	char const* j			= mask;

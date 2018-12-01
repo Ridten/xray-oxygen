@@ -1,17 +1,16 @@
 #include "stdafx.h"
 
-#include "actor.h"
+#include "Actor.h"
 #include "inventory.h"
-#include "weapon.h"
+#include "items/Weapon.h"
 #include "../xrEngine/CameraBase.h"
 #include "xrMessages.h"
 
 #include "level.h"
 #include "UIGame.h"
 #include "..\xrEngine\string_table.h"
-#include "actorcondition.h"
-#include "game_cl_base.h"
-#include "WeaponMagazined.h"
+#include "ActorCondition.h"
+#include "items/WeaponMagazined.h"
 #include "CharacterPhysicsSupport.h"
 #include "actoreffector.h"
 #include "player_hud.h"
@@ -593,7 +592,7 @@ bool CActor::is_jump()
 }
 
 //максимальный переносимы вес
-#include "CustomOutfit.h"
+#include "items/CustomOutfit.h"
 float CActor::MaxCarryWeight () const
 {
 	float res = inventory().GetMaxWeight();
@@ -608,7 +607,7 @@ float CActor::MaxWalkWeight() const
 	return max_w;
 }
 
-#include "artefact.h"
+#include "items/Artefact.h"
 #include "ActorRuck.h"
 
 float CActor::get_additional_weight() const

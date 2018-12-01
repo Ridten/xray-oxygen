@@ -21,7 +21,7 @@
 #include "../../stalker_planner.h"
 #include "../../script_game_object.h"
 #include "../../stalker_animation_manager.h"
-#include "../../weapon.h"
+#include "../../items/weapon.h"
 #include "../../sound_player.h"
 #include "../../inventory.h"
 #include "../../object_handler_planner.h"
@@ -42,7 +42,7 @@
 #include "../../agent_location_manager.h"
 #include "../../cover_point.h"
 #include "../../../xrEngine/camerabase.h"
-#include "../../weaponmagazined.h"
+#include "../../items/weaponmagazined.h"
 #include "../../object_handler_space.h"
 #include "../../debug_renderer.h"
 #include "../../CharacterPhysicsSupport.h"
@@ -53,7 +53,7 @@
 #include "../../aimers_weapon.h"
 #include "../../aimers_bone.h"
 #include "../../smart_cover_planner_target_selector.h"
-#include "../../ui_base.h"
+#include "../../../xrUICore/ui_base.h"
 #include "../../doors_actor.h"
 
 CActor *g_debug_actor = 0;
@@ -65,7 +65,7 @@ void try_change_current_entity()
 	g_debug_actor						= actor;
 
 	CFrustum							frustum;
-	frustum.CreateFromMatrix			(Device.mFullTransform,FRUSTUM_P_LRTB|FRUSTUM_P_FAR);
+	frustum.CreateFromMatrix			(CastToGSCMatrix(Device.mFullTransform),FRUSTUM_P_LRTB|FRUSTUM_P_FAR);
 
 	typedef xr_vector<ISpatial*>		OBJECTS;
 	OBJECTS								ISpatialResult;
@@ -133,7 +133,7 @@ void restore_actor()
 	CHudItem* pHudItem = smart_cast<CHudItem*>(g_debug_actor->inventory().ActiveItem());
 	if (pHudItem) 
 	{
-		pHudItem->OnStateSwitch(pHudItem->GetState());
+		pHudItem->OnStateSwitch(pHudItem->GetState(), pHudItem->GetState());
 	}
 }
 
@@ -945,7 +945,7 @@ void CAI_Stalker::dbg_draw_vision	()
 	shift.set					(0.f,2.5f,0.f);
 
 	Fmatrix						res;
-	res.mul						(Device.mFullTransform,XFORM());
+	res.mul						(CastToGSCMatrix(Device.mFullTransform),XFORM());
 
 	Fvector4					v_res;
 

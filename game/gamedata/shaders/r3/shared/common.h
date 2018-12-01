@@ -9,6 +9,15 @@
 //	Used by VS
 cbuffer	dynamic_transforms
 {
+	uniform float3x4		m_W;			// local2world
+	uniform float3x4		m_invW;			// world2local
+	uniform float3x4		m_V;			// world2view
+	uniform float3x4		m_invV;			// view2world
+	uniform float4x4 		m_P;			// view2proj
+	uniform float4x4		m_invP;			// proj2view
+	uniform float3x4		m_WV;			// local2world2view
+	uniform float4x4 		m_VP;			// world2view2proj
+	uniform float4x4 		m_WVP;			// local2world2view2proj
 	//	Used by VS only
 	uniform float4			L_material;	// 0,0,0,mid
 	uniform float4          hemi_cube_pos_faces;
@@ -18,16 +27,6 @@ cbuffer	dynamic_transforms
 
 cbuffer	static_globals
 {
-	uniform float3x4	m_W;			// local2world
-	uniform float3x4	m_invW;			// world2local
-	uniform float3x4	m_V;			// world2view
-	uniform float3x4	m_invV;			// view2world
-	uniform float4x4 	m_P;			// view2proj
-	uniform float4x4	m_invP;			// proj2view
-	uniform float3x4	m_WV;			// local2world2view
-	uniform float4x4 	m_VP;			// world2view2proj
-	uniform float4x4 	m_WVP;			// local2world2view2proj
-
 	uniform float4		timers;
 
 	uniform float4		fog_plane;
@@ -42,9 +41,8 @@ cbuffer	static_globals
 	uniform float3 		eye_position;
 
 	uniform float4 		pos_decompression_params;
-	uniform float4 		pos_decompression_params2;
 
-	uniform float4		screen_res;		// Screen resolution (x-Width,y-Height, zw - 1/resolution)
+	uniform float4		screen_res;		// Screen resolution (x=width, y=height, z=1/width, w=1/height)
 	uniform float4		parallax;
 
 	// Глобальные параметры шейдеров --#SM+#--

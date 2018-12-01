@@ -1,4 +1,4 @@
-#include "stdafx.h"
+﻿#include "stdafx.h"
 #include <dinput.h>
 #include "xr_ioconsole.h"
 #include "xr_input.h"
@@ -29,6 +29,8 @@ _action  actions[] = {
 	{ "cam_1",				kCAM_1				},
 	{ "cam_2",				kCAM_2				},
 	{ "cam_3",				kCAM_3				},
+	{ "cam_zoom_in",		kCAM_ZOOM_IN		},
+	{ "cam_zoom_out",		kCAM_ZOOM_OUT		},
 
 	{ "torch",				kTORCH				},
 	{ "night_vision",		kNIGHT_VISION		},
@@ -342,7 +344,7 @@ void GetActionAllBinding(LPCSTR _action, char* dst_buff, int dst_buff_sz)
 		}
 		catch (...)
 		{
-			Debug.fatal(DEBUG_INFO, make_string("can't action id: %d", action_id).c_str());
+			R_ASSERT_FORMAT(false, "can't action id: %d", action_id);
 		}
 	}
 

@@ -1,4 +1,4 @@
-#include "stdafx.h"
+﻿#include "stdafx.h"
 #include "igame_level.h"
 #include "xr_ioconsole.h"
 #include "xr_ioc_cmd.h"
@@ -237,22 +237,21 @@ bool CCC_LoadCFG_custom::allow(LPCSTR cmd)
 class CCC_Start : public IConsole_Command
 {
 protected:
-	std::string parse(const std::string &str)
+	xr_string parse(const xr_string &str)
 	{
 		std::regex Reg("\\(([^)]+)\\)");
 		std::smatch results;
 		R_ASSERT3(std::regex_search(str, results, Reg), "Failed parsing string: [%s]", str.c_str());
-		return results[1].str();
+		return results[1].str().c_str();
 	}
 public:
 	CCC_Start(const char* N) : IConsole_Command(N) {};
 	void Execute(const char* args) override 
 	{
-		std::string str = this->parse(args);
+		xr_string str = this->parse(args);
 		Engine.Event.Defer("KERNEL:start", u64(xr_strdup(str.c_str())), u64(xr_strdup("localhost")));
 	}
 };
-
 
 class CCC_Disconnect : public IConsole_Command
 {
@@ -349,7 +348,7 @@ public :
 };
 
 //-----------------------------------------------------------------------
-u32 ps_vid_windowtype = 4;
+ENGINE_API u32 ps_vid_windowtype = 4;
 xr_token vid_windowtype_token[] =
 {
     { "windowed",               1 },
@@ -419,10 +418,8 @@ public:
 	}
 };
 
-ENGINE_API BOOL r2_sun_static = TRUE;
 ENGINE_API BOOL r2_advanced_pp = FALSE;	//	advanced post process and effects
-
-u32	renderer_value = 3;
+u32	renderer_value = 0;
 u32 isLoaded = 2;
 extern bool g_bRendererForced;
 
@@ -446,14 +443,10 @@ public:
 
 			inherited::Execute(args);
 
-			//	0 - r1
-			//	1..3 - r2
-			//	4 - r3
-			psDeviceFlags.set(rsR2, ((renderer_value > 0) && renderer_value < 4));
-			psDeviceFlags.set(rsR3, (renderer_value == 4));
-			psDeviceFlags.set(rsR4, (renderer_value >= 5));
-
-			r2_sun_static = (renderer_value < 2);
+			// 0..2 - r2
+			// 3 - r4
+			psDeviceFlags.set(rsR2, ((renderer_value >= 0) && renderer_value < 3));
+			psDeviceFlags.set(rsR4, (renderer_value == 3));
 
 			r2_advanced_pp = (renderer_value >= 3);
 

@@ -1,6 +1,7 @@
-#include "stdafx.h"
+﻿#include "stdafx.h"
 #include "../xrCDB/frustum.h"
 #include "xr_input.h"
+#include "DirectXMathExternal.h"
 /////////////////////////////////////
 #define MMNOSOUND
 #define MMNOMIDI
@@ -30,30 +31,12 @@ extern bool bEngineloaded;
 ENGINE_API CRenderDevice Device;
 ENGINE_API CLoadScreenRenderer load_screen_renderer;
 /////////////////////////////////////
-DWORD gMainThreadId = 0xFFFFFFFF;
-DWORD gSecondaryThreadId = 0xFFFFFFFF;
-/////////////////////////////////////
-
-
-ENGINE_API bool IsMainThread()
-{
-    return GetCurrentThreadId() == gMainThreadId;
-}
-
-ENGINE_API bool IsSecondaryThread()
-{
-    return GetCurrentThreadId() == gSecondaryThreadId;
-}
-
-
-/////////////////////////////////////
 ENGINE_API BOOL g_bRendering = FALSE; 
 /////////////////////////////////////
 BOOL		g_bLoaded		= FALSE;
 bool		g_bL			= false;
 ref_light	precache_light	= nullptr;
 /////////////////////////////////////
-
 
 BOOL CRenderDevice::Begin	()
 {
@@ -139,73 +122,77 @@ void CRenderDevice::End		()
 #	endif // #ifdef INGAME_EDITOR
 }
 
+volatile u32 mt_Thread_marker = 0x12345678;
 
-volatile u32	mt_Thread_marker		= 0x12345678;
-void 			mt_Thread	(void *ptr)	
+void mt_Thread(void *ptr)	
 {
     gSecondaryThreadId = GetCurrentThreadId();
 
 	while (true) 
 	{
 		// waiting for Device permission to execute
-		Device.mt_csEnter.lock	();
+		Device.mt_csEnter.Enter	();
 
-		if (Device.mt_bMustExit) {
-			Device.mt_bMustExit = FALSE;				// Important!!!
-			Device.mt_csEnter.unlock();					// Important!!!
+		if (Device.mt_bMustExit) 
+		{
+			Device.mt_bMustExit = FALSE; // Important!!!
 			return;
 		}
 		// we has granted permission to execute
-		mt_Thread_marker			= Device.dwFrame;
+		mt_Thread_marker = Device.dwFrame;
  
-		for (fastdelegate::FastDelegate0<> & pit : Device.seqParallel)
-		{
-			pit();
-		}
+		for (xrDelegate<void()> &refParallelDelegate : Device.seqParallel)
+			refParallelDelegate();
+
 		Device.seqParallel.clear();
 		Device.seqFrameMT.Process(rp_Frame);
 
 		// now we give control to device - signals that we are ended our work
-		Device.mt_csEnter.unlock();
+		Device.mt_csEnter.Leave();
 		// waits for device signal to continue - to start again
-		Device.mt_csLeave.lock();
+		Device.mt_csLeave.Enter();
 		// returns sync signal to device
-		Device.mt_csLeave.unlock();
+		Device.mt_csLeave.Leave();
 	}
 }
 
 #include "igame_level.h"
-void CRenderDevice::PreCache	(u32 amount, bool b_draw_loadscreen, bool b_wait_user_input)
+void CRenderDevice::PreCache(u32 amount, bool b_draw_loadscreen, bool b_wait_user_input)
 {
-	if (m_pRender->GetForceGPU_REF()) 
-		amount = NULL; 
+	if (m_pRender->GetForceGPU_REF()) { amount = NULL; }
 
-	dwPrecacheFrame	= dwPrecacheTotal = amount;
-	if (amount && !precache_light && g_pGameLevel && g_loading_events.empty()) {
-		precache_light					= ::Render->light_create();
-		precache_light->set_shadow		(false);
-		precache_light->set_position	(vCameraPosition);
-		precache_light->set_color		(255,255,255);
-		precache_light->set_range		(5.0f);
-		precache_light->set_active		(true);
-	}
+	dwPrecacheFrame = dwPrecacheTotal = amount;
 
-	if(amount && b_draw_loadscreen && load_screen_renderer.b_registered==false)
+	if (dwPrecacheFrame)
 	{
-		load_screen_renderer.start	(b_wait_user_input);
+		if (!precache_light && g_pGameLevel && g_loading_events.empty())
+		{
+			precache_light = ::Render->light_create();
+			precache_light->set_shadow(false);
+			precache_light->set_position(vCameraPosition);
+			precache_light->set_color(255, 255, 255);
+			precache_light->set_range(5.0f);
+			precache_light->set_active(true);
+		}
+
+		if (b_draw_loadscreen && !load_screen_renderer.b_registered)
+		{
+			load_screen_renderer.start(b_wait_user_input);
+		}
 	}
 }
 
-ENGINE_API xr_list<LOADING_EVENT>			g_loading_events;
+ENGINE_API xr_list<LOADING_EVENT> g_loading_events;
 
-void CRenderDevice::on_idle		()
+void CRenderDevice::on_idle()
 {
-	if (!b_is_Ready) { Sleep(100); return; }
+	if (!b_is_Ready) 
+	{
+		Sleep(100);
+		return; 
+	}
 
-	if (psDeviceFlags.test(rsStatistic))
-		g_bEnableStatGather = TRUE;
-	else
-		g_bEnableStatGather = FALSE;
+	g_bEnableStatGather = psDeviceFlags.test(rsStatistic);
 
 	if (!g_loading_events.empty())
 	{
@@ -230,14 +217,13 @@ void CRenderDevice::on_idle		()
 		vCameraDirection.set(_sin(angle), 0, _cos(angle));	vCameraDirection.normalize();
 		vCameraTop.set(0, 1, 0);
 		vCameraRight.crossproduct(vCameraTop, vCameraDirection);
-
-		mView.build_camera_dir(vCameraPosition, vCameraDirection, vCameraTop);
+		mView.BuildCamDir(vCameraPosition, vCameraDirection, vCameraTop);
 	}
 
 	// Matrices
-	mFullTransform.mul(mProject, mView);
+	mFullTransform.Multiply(mView, mProject);
 	m_pRender->SetCacheXform(mView, mProject);
-	D3DXMatrixInverse((D3DXMATRIX*)&mInvFullTransform, nullptr, (D3DXMATRIX*)&mFullTransform);
+	mInvFullTransform = XRay::Math::CastToGSCMatrix(DirectX::XMMatrixInverse(0, mFullTransform));
 
 	vCameraPosition_saved = vCameraPosition;
 	mFullTransform_saved = mFullTransform;
@@ -247,9 +233,9 @@ void CRenderDevice::on_idle		()
 	// *** Resume threads
 	// Capture end point - thread must run only ONE cycle
 	// Release start point - allow thread to run
-	mt_csLeave.lock();
-	mt_csEnter.unlock();
-	Sleep(0);
+	mt_csLeave.Enter();
+	mt_csEnter.Leave();
+    Sleep(0);
 
 	Statistic->RenderTOTAL_Real.FrameStart();
 	Statistic->RenderTOTAL_Real.Begin();
@@ -258,11 +244,9 @@ void CRenderDevice::on_idle		()
 		if (Begin())
 		{
 			seqRender.Process(rp_Render);
-			if (psDeviceFlags.test(rsCameraPos)
-				|| psDeviceFlags.test(rsStatistic)
-				|| psDeviceFlags.test(rsDrawFPS)
-				|| psDeviceFlags.test(rsHWInfo)
-				|| !Statistic->errors.empty())
+			if (psDeviceFlags.test(rsCameraPos) || psDeviceFlags.test(rsStatistic)  || 
+				psDeviceFlags.test(rsDrawFPS)	|| psDeviceFlags.test(rsHWInfo)		|| 
+				!Statistic->errors.empty())
 			{
 				Statistic->Show();
 			}
@@ -278,26 +262,31 @@ void CRenderDevice::on_idle		()
 	// *** Suspend threads
 	// Capture startup point
 	// Release end point - allow thread to wait for startup point
-	mt_csEnter.lock();
-	mt_csLeave.unlock();
+	mt_csEnter.Enter();
+	mt_csLeave.Leave();
 
 	// Ensure, that second thread gets chance to execute anyway
 	if (dwFrame != mt_Thread_marker)
 	{
-		for (auto & pit : Device.seqParallel) { pit(); }
+		for (auto & refParallelDelegate : Device.seqParallel) 
+			refParallelDelegate();
+
 		Device.seqParallel.clear();
 		seqFrameMT.Process(rp_Frame);
 	}
 
-	if (!b_is_Active)
-		Sleep(1);
+	if (!b_is_Active) 
+	{ 
+		Sleep(1); 
+	}
 }
 
 void CRenderDevice::ResizeProc(DWORD height, DWORD  width)
 {
-	std::string buf = "vid_mode " + std::to_string(width) + "x" + std::to_string(height);
-	Console->Execute(buf.c_str());
+	static char buf[128] = { NULL };
+	xr_sprintf(buf, "%s%d%s%d", "vid_mode ", width, "x", height);
 
+	Console->Execute(buf);
 	m_pRender->Reset(m_hWnd, dwWidth, dwHeight, fWidth_2, fHeight_2);
 }
 
@@ -352,43 +341,48 @@ int GetNumOfDisplays()
 
 void CRenderDevice::Run			()
 {
-	g_bLoaded				= FALSE;
-	Log						("Starting engine...");
-
-	Msg						("Value of system displays: %d.", GetNumOfDisplays());
-
-	thread_name				("X-RAY Primary thread");
-
-	// Startup timers and calculate timer delta
-	dwTimeGlobal				= 0;
-	Timer_MM_Delta				= 0;
-	{
-		u32 time_mm = timeGetTime	();
-		// wait for next tick
-		while (timeGetTime()==time_mm);	 //-V529
-
-		u32 time_system = timeGetTime	();
-		u32 time_local  = TimerAsync	();
-		Timer_MM_Delta  = time_system-time_local;
-	}
-
-	// Start all threads
-	mt_csEnter.lock				();
-	mt_bMustExit				= FALSE;
-	thread_spawn				(mt_Thread, "X-RAY Secondary thread", 0, nullptr);
-
-	// Message cycle
-	seqAppStart.Process			(rp_AppStart);
-	m_pRender->ClearTarget		();
+	BeginToWork();
 	message_loop				();
 
 	seqAppEnd.Process		(rp_AppEnd);
 
 	// Stop Balance-Thread
 	mt_bMustExit			= TRUE;
-	mt_csEnter.unlock		();
+	mt_csEnter.Leave();
 	while (mt_bMustExit)	
 		Sleep(0);
+}
+
+void CRenderDevice::BeginToWork()
+{
+	g_bLoaded = FALSE;
+	Log("Starting engine...");
+
+	Msg("Value of system displays: %d.", GetNumOfDisplays());
+
+	thread_name("X-Ray: Primary thread");
+
+	// Startup timers and calculate timer delta
+	dwTimeGlobal = 0;
+	Timer_MM_Delta = 0;
+	{
+		u32 time_mm = timeGetTime();
+		// wait for next tick
+		while (timeGetTime() == time_mm);	 //-V529
+
+		u32 time_system = timeGetTime();
+		u32 time_local = TimerAsync();
+		Timer_MM_Delta = time_system - time_local;
+	}
+
+	// Start all threads
+	mt_csEnter.Enter();
+	mt_bMustExit = FALSE;
+	thread_spawn(mt_Thread, "X-RAY Secondary thread", 0, nullptr);
+
+	// Message cycle
+	seqAppStart.Process(rp_AppStart);
+	m_pRender->ClearTarget();
 }
 
 void CRenderDevice::UpdateWindowPropStyle(WindowPropStyle PropStyle)

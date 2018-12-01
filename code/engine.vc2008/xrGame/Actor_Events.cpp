@@ -1,19 +1,18 @@
 #include "stdafx.h"
-#include "actor.h"
-#include "weapon.h"
-#include "artefact.h"
-#include "scope.h"
-#include "silencer.h"
-#include "grenadelauncher.h"
-#include "inventory.h"
-#include "level.h"
-#include "..\xrEngine\xr_level_controller.h"
-#include "FoodItem.h"
+#include "Actor.h"
 #include "ActorCondition.h"
-#include "Grenade.h"
+#include "items/Weapon.h"
+#include "items/Artefact.h"
+#include "items/Scope.h"
+#include "items/Silencer.h"
+#include "items/GrenadeLauncher.h"
+#include "inventory.h"
+#include "Level.h"
+#include "..\xrEngine\xr_level_controller.h"
+#include "..\xrEngine\CameraBase.h"
+#include "items/FoodItem.h"
+#include "items/Grenade.h"
 
-#include "CameraLook.h"
-#include "CameraFirstEye.h"
 #include "holder_custom.h"
 #include "game_base.h"
 #ifdef DEBUG
@@ -78,9 +77,9 @@ void CActor::OnEvent(NET_Packet& P, u16 type)
 				break;
 			}
 			
-			VERIFY2( GO->H_Parent()->ID() == ID(), 
-				make_string("actor [%d][%s] tries to drop not own object [%d][%s]",
-					ID(), Name(), GO->ID(), GO->cNameSect().c_str() ).c_str() );
+			VERIFY_FORMAT( GO->H_Parent()->ID() == ID(), 
+				"actor [%d][%s] tries to drop not own object [%d][%s]",
+					ID(), Name(), GO->ID(), GO->cNameSect().c_str());
 
 			if ( GO->H_Parent()->ID() != ID() )
 			{
@@ -134,12 +133,12 @@ void CActor::OnEvent(NET_Packet& P, u16 type)
 			P.r_u16		(id);
 			CObject* Obj	= Level().Objects.net_Find	(id);
 
-			VERIFY2  ( Obj, make_string("GEG_PLAYER_ITEM_EAT(use): Object not found. object_id = [%d]", id).c_str() );
+			VERIFY_FORMAT  ( Obj, "GEG_PLAYER_ITEM_EAT(use): Object not found. object_id = [%d]", id);
 			
 			if (!Obj)
 				break;
 
-			VERIFY2  ( !Obj->getDestroy(), make_string("GEG_PLAYER_ITEM_EAT(use): Object is destroying. object_id = [%d]", id).c_str() );
+			VERIFY_FORMAT( !Obj->getDestroy(), "GEG_PLAYER_ITEM_EAT(use): Object is destroying. object_id = [%d]", id);
 			if (Obj->getDestroy())
 				break;
 			
@@ -147,7 +146,7 @@ void CActor::OnEvent(NET_Packet& P, u16 type)
 			if (type == GEG_PLAYER_ACTIVATEARTEFACT)
 			{
 				CArtefact* pArtefact = smart_cast<CArtefact*>(Obj);
-				VERIFY2(pArtefact, make_string("GEG_PLAYER_ACTIVATEARTEFACT: Artefact not found. artefact_id = [%d]", id).c_str());
+				VERIFY_FORMAT(pArtefact, "GEG_PLAYER_ACTIVATEARTEFACT: Artefact not found. artefact_id = [%d]", id);
 				if (!pArtefact) {
 					Msg("! GEG_PLAYER_ACTIVATEARTEFACT: Artefact not found. artefact_id = [%d]", id);
 					break;//1

@@ -204,7 +204,7 @@ CModelPool::~CModelPool()
 
 dxRender_Visual* CModelPool::Instance_Find(LPCSTR N)
 {
-	dxRender_Visual*				Model=0;
+	dxRender_Visual*				Model=nullptr;
 	xr_vector<ModelDef>::iterator	I;
 
 	for (I=Models.begin(); I!=Models.end(); I++)
@@ -231,9 +231,9 @@ dxRender_Visual* CModelPool::Create(const char* name, IReader* data)
 		dxRender_Visual* Model = it->second;
 		Model->Spawn();
 
-		mtPeref.lock();
+		mtPeref.Enter();
 		Pool.erase(it);
-		mtPeref.unlock();
+		mtPeref.Leave();
 
 		return Model;
 	}
@@ -242,7 +242,7 @@ dxRender_Visual* CModelPool::Create(const char* name, IReader* data)
 		// 1. Search for already loaded model (reference, base model)
 		dxRender_Visual* Base = Instance_Find(low_name);
 
-		mtPeref.lock();
+		mtPeref.Enter();
 		if (!Base) 
 		{
 			// 2. If not found
@@ -255,7 +255,7 @@ dxRender_Visual* CModelPool::Create(const char* name, IReader* data)
 		dxRender_Visual* Model = Instance_Duplicate(Base);
 
 		Registry.insert(std::make_pair(Model, low_name));
-		mtPeref.unlock();
+		mtPeref.Leave();
 
 		return Model;
 	}
@@ -457,31 +457,38 @@ void CModelPool::memory_stats		( u32& vb_mem_video, u32& vb_mem_system, u32& ib_
 		dxRender_Visual* ptr = it->model;
 		Fvisual* vis_ptr = dynamic_cast<Fvisual*> (ptr);
 
-		if( vis_ptr == NULL )
+		if( vis_ptr == nullptr)
 			continue;
-#if !defined(USE_DX10) && !defined(USE_DX11)
+
+#ifndef USE_DX11
 		D3DINDEXBUFFER_DESC IB_desc;
 		D3DVERTEXBUFFER_DESC VB_desc;
 
 		vis_ptr->m_fast->p_rm_Indices->GetDesc( &IB_desc );
 
-		if( IB_desc.Pool == D3DPOOL_DEFAULT ||
-			IB_desc.Pool == D3DPOOL_MANAGED )
-			ib_mem_video += IB_desc.Size;
+		D3DPOOL         IB_Pool = IB_desc.Pool;
+		unsigned int    IB_Size = IB_desc.Size;
 
-		if( IB_desc.Pool == D3DPOOL_MANAGED ||
-			IB_desc.Pool == D3DPOOL_SCRATCH )
-			ib_mem_system += IB_desc.Size;
+		if( IB_Pool == D3DPOOL_DEFAULT ||
+			IB_Pool == D3DPOOL_MANAGED )
+			ib_mem_video += IB_Size;
+
+		if( IB_Pool == D3DPOOL_MANAGED ||
+			IB_Pool == D3DPOOL_SCRATCH )
+			ib_mem_system += IB_Size;
 
 		vis_ptr->m_fast->p_rm_Vertices->GetDesc( &VB_desc );
 
-		if( VB_desc.Pool == D3DPOOL_DEFAULT ||
-			VB_desc.Pool == D3DPOOL_MANAGED )
-			vb_mem_video += IB_desc.Size;
+		D3DPOOL         VB_Pool = VB_desc.Pool;
+		unsigned int    VB_Size = VB_desc.Size;
+
+		if( VB_Pool == D3DPOOL_DEFAULT ||
+			VB_Pool == D3DPOOL_MANAGED)
+			vb_mem_video += VB_Size;
 
 		if( VB_desc.Pool == D3DPOOL_MANAGED ||
 			VB_desc.Pool == D3DPOOL_SCRATCH )
-			vb_mem_system += IB_desc.Size;
+			vb_mem_system += VB_Size;
 
 #else
 		D3D_BUFFER_DESC IB_desc;
@@ -498,115 +505,5 @@ void CModelPool::memory_stats		( u32& vb_mem_video, u32& vb_mem_system, u32& ib_
 		vb_mem_system += IB_desc.ByteWidth;
 
 #endif
-
-
-
-
-
-
 	}
 } 
-
-#ifdef _EDITOR
-IC bool	_IsBoxVisible(dxRender_Visual* visual, const Fmatrix& transform)
-{
-    Fbox 		bb; 
-    bb.xform	(visual->vis.box,transform);
-    return 		::Render->occ_visible(bb);
-}
-IC bool	_IsValidShader(dxRender_Visual* visual, u32 priority, bool strictB2F)
-{
-	if (visual->shader)
-        return (priority==visual->shader->E[0]->flags.iPriority)&&(strictB2F==visual->shader->E[0]->flags.bStrictB2F);
-    return false;
-}
-
-void 	CModelPool::Render(dxRender_Visual* m_pVisual, const Fmatrix& mTransform, int priority, bool strictB2F, float m_fLOD)
-{
-    // render visual
-    xr_vector<dxRender_Visual*>::iterator I,E;
-    switch (m_pVisual->Type){
-    case MT_SKELETON_ANIM:
-    case MT_SKELETON_RIGID:{
-        if (_IsBoxVisible(m_pVisual,mTransform)){
-            CKinematics* pV		= dynamic_cast<CKinematics*>(m_pVisual); VERIFY(pV);
-            if (fis_zero(m_fLOD,EPS)&&pV->m_lod){
-		        if (_IsValidShader(pV->m_lod,priority,strictB2F)){
-	                RCache.set_Shader		(pV->m_lod->shader?pV->m_lod->shader:EDevice.m_WireShader);
-    	            RCache.set_xform_world	(mTransform);
-        	        pV->m_lod->Render		(1.f);
-                }
-            }else{
-                I = pV->children.begin		();
-                E = pV->children.end		();
-                for (; I!=E; I++){
-                    if (_IsValidShader(*I,priority,strictB2F)){
-                        RCache.set_Shader		((*I)->shader?(*I)->shader:EDevice.m_WireShader);
-                        RCache.set_xform_world	(mTransform);
-                        (*I)->Render		 	(m_fLOD);
-                    }
-                }
-            }
-        }
-    }break;
-    case MT_HIERRARHY:{
-        if (_IsBoxVisible(m_pVisual,mTransform)){
-            FHierrarhyVisual* pV		= dynamic_cast<FHierrarhyVisual*>(m_pVisual); VERIFY(pV);
-            I = pV->children.begin		();
-            E = pV->children.end		();
-            for (; I!=E; I++){
-		        if (_IsValidShader(*I,priority,strictB2F)){
-	                RCache.set_Shader		((*I)->shader?(*I)->shader:EDevice.m_WireShader);
-    	            RCache.set_xform_world	(mTransform);
-        	        (*I)->Render		 	(m_fLOD);
-                }
-            }
-        }
-    }break;
-    case MT_PARTICLE_GROUP:{
-        PS::CParticleGroup* pG			= dynamic_cast<PS::CParticleGroup*>(m_pVisual); VERIFY(pG);
-//		if (_IsBoxVisible(m_pVisual,mTransform))
-        {
-            RCache.set_xform_world	  		(mTransform);
-            for (PS::CParticleGroup::SItemVecIt i_it=pG->items.begin(); i_it!=pG->items.end(); i_it++){
-                xr_vector<dxRender_Visual*>	visuals;
-                i_it->GetVisuals			(visuals);
-                for (xr_vector<dxRender_Visual*>::iterator it=visuals.begin(); it!=visuals.end(); it++)
-                    Render					(*it,Fidentity,priority,strictB2F,m_fLOD);
-            }
-        }
-    }break;
-    case MT_PARTICLE_EFFECT:{
-//		if (_IsBoxVisible(m_pVisual,mTransform))
-        {
-            if (_IsValidShader(m_pVisual,priority,strictB2F)){
-                RCache.set_Shader			(m_pVisual->shader?m_pVisual->shader:EDevice.m_WireShader);
-                RCache.set_xform_world		(mTransform);
-                m_pVisual->Render		 	(m_fLOD);
-            }
-        }
-    }break;
-    default:
-        if (_IsBoxVisible(m_pVisual,mTransform)){
-            if (_IsValidShader(m_pVisual,priority,strictB2F)){
-                RCache.set_Shader			(m_pVisual->shader?m_pVisual->shader:EDevice.m_WireShader);
-                RCache.set_xform_world		(mTransform);
-                m_pVisual->Render		 	(m_fLOD);
-            }
-        }
-        break;
-    }
-}
-
-void 	CModelPool::RenderSingle(dxRender_Visual* m_pVisual, const Fmatrix& mTransform, float m_fLOD)
-{
-	for (int p=0; p<4; p++){
-    	Render(m_pVisual,mTransform,p,false,m_fLOD);
-    	Render(m_pVisual,mTransform,p,true,m_fLOD);
-    }
-}
-void CModelPool::OnDeviceDestroy()
-{
-	Destroy();
-}
-#endif

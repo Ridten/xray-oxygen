@@ -1,18 +1,18 @@
 #include "stdafx.h"
 #include "UICellItem.h"
-#include "uicursor.h"
+#include "../xrUICore/UICursor.h"
 #include "../inventory_item.h"
 #include "UIDragDropListEx.h"
 #include "../xrEngine/xr_level_controller.h"
 #include "../../xrEngine/xr_input.h"
 #include "../level.h"
 #include "object_broker.h"
-#include "UIXmlInit.h"
-#include "UIProgressBar.h"
+#include "../xrUICore/UIXmlInit.h"
+#include "../xrUICore/UIProgressBar.h"
 
-#include "Weapon.h"
-#include "CustomOutfit.h"
-#include "ActorHelmet.h"
+#include "items/Weapon.h"
+#include "items/CustomOutfit.h"
+#include "items/Helmet.h"
 
 CUICellItem* CUICellItem::m_mouse_selected_item = NULL;
 
@@ -199,6 +199,7 @@ void CUICellItem::SetOwnerList(CUIDragDropListEx* p)
 
 void CUICellItem::UpdateConditionProgressBar()
 {
+	if (!m_pConditionState) return;
 
 	if(m_pParentList && m_pParentList->GetConditionProgBarVisibility())
 	{

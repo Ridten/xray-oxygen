@@ -14,7 +14,7 @@
 #include "../Include/xrRender/KinematicsAnimated.h"
 #include "../xrEngine/bone.h"
 #include "../xrEngine/iphdebug.h"
-#include "ui_base.h"
+#include "../xrUICore/ui_base.h"
 
 Flags32		ph_dbg_draw_mask;
 Flags32		ph_dbg_draw_mask1;
@@ -330,10 +330,10 @@ struct SPHDBGOutText : public SPHDBGDrawAbsract
 		//if(rendered) return;
 		if (!fsimilar(dbg_text_current_height_scale, dbg_text_height_scale))
 		{
-			UI().Font().pFontStat->SetHeight(UI().Font().pFontStat->GetHeight() * dbg_text_height_scale / dbg_text_current_height_scale);
+			UI().Font().GetFont("stat_font")->SetHeight(UI().Font().GetFont("stat_font")->GetHeight() * dbg_text_height_scale / dbg_text_current_height_scale);
 			dbg_text_current_height_scale = dbg_text_height_scale;
 		}
-		UI().Font().pFontStat->OutNext("%s", s);
+		UI().Font().GetFont("stat_font")->OutNext("%s", s);
 		rendered = true;
 	}
 };
@@ -357,7 +357,7 @@ struct SPHDBGTextSetColor : public SPHDBGDrawAbsract
 	}
 	virtual void render()
 	{
-		UI().Font().pFontStat->SetColor(color);
+		UI().Font().GetFont("stat_font")->SetColor(color);
 	}
 };
 
@@ -376,7 +376,7 @@ struct SPHDBGTextOutSet : public SPHDBGDrawAbsract
 	}
 	virtual void render()
 	{
-		UI().Font().pFontStat->OutSet(x, y);
+		UI().Font().GetFont("stat_font")->OutSet(x, y);
 	}
 };
 
@@ -524,7 +524,7 @@ void PH_DBG_Render()
 	if (ph_dbg_draw_mask.test(phDbgDrawZDisable))
 		DRender->ZEnable(false);
 	//CHK_DX(HW.pDevice->SetRenderState(D3DRS_ZENABLE,0));
-	UI().Font().pFontStat->OutSet(550, 250);
+	UI().Font().GetFont("stat_font")->OutSet(550, 250);
 	DBG_PHAbstructRender();
 
 	if (ph_dbg_draw_mask.test(phDbgDrawZDisable))
@@ -597,12 +597,12 @@ void DBG_DrawStatAfterFrameStep()
 CFunctionGraph::CFunctionGraph()
 {
 	m_stat_graph = nullptr;
-	m_function.clear();
+	m_function.reset();
 }
 CFunctionGraph::~CFunctionGraph()
 {
 	xr_delete(m_stat_graph);
-	m_function.clear();
+	m_function.reset();
 }
 void CFunctionGraph::Init(type_function fun, float x0, float x1, int l, int t, int w, int h, int points_num/*=500*/, u32 color/*=*/, u32 bk_color)
 {
@@ -660,7 +660,7 @@ void CFunctionGraph::ScaleMarkerPos(CStatGraph::EStyle Style, float &p)
 void CFunctionGraph::Clear()
 {
 	xr_delete(m_stat_graph);
-	m_function.clear();
+	m_function.reset();
 }
 
 bool CFunctionGraph::IsActive()
@@ -1140,10 +1140,6 @@ class CPHDebugOutput :
 	virtual		float		dbg_vel_collid_damage_to_display()
 	{
 		return ::dbg_vel_collid_damage_to_display;
-		//Msg( "%s, _14_=%f ", dump_string( make_string( "%s.i, ", name ).c_str(), form.i ).c_str( ) , form._14_ );  
-		//Msg( "%s, _24_=%f ", dump_string( make_string( "%s.j, ", name ).c_str(), form.j ).c_str( ) , form._24_ );  
-		//Msg( "%s, _34_=%f ", dump_string( make_string( "%s.k, ", name ).c_str(), form.k ).c_str( ) , form._34_  );  
-		//Msg( "%s, _44_=%f ", dump_string( make_string( "%s.c, ", name ).c_str(), form.c ).c_str( ) , form._44_ );  
 	}
 
 	virtual		void DBG_ObjAfterPhDataUpdate(CPHObject *obj)

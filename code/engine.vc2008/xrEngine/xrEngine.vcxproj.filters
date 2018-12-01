@@ -232,11 +232,20 @@
     <Filter Include="Game API\RenderRef\Execution &amp; 3D\Visuals\Skeleton">
       <UniqueIdentifier>{51dac9fb-ca56-44cc-b86b-4bcbe28922da}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Spectre">
+      <UniqueIdentifier>{814d34e1-3873-4ffd-a040-ed3993c26022}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Game API\Level">
       <UniqueIdentifier>{f95a2f74-5e20-47a4-9614-4353cd722baf}</UniqueIdentifier>
     </Filter>
     <Filter Include="Device\Stats">
       <UniqueIdentifier>{2c2e368f-497f-4dce-a130-d87a6e85b061}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Interfaces\Discord">
+      <UniqueIdentifier>{f1004f51-b80f-4c12-a930-80f1ea7e1f0d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Interfaces\Ansel SDK">
+      <UniqueIdentifier>{4748e55e-298c-4d97-a139-2ec3b9c51b87}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -603,6 +612,24 @@
     <ClInclude Include="DynamicSplash.h">
       <Filter>Device\Stats</Filter>
     </ClInclude>
+    <ClInclude Include="IGame_Actor.h">
+      <Filter>Game API</Filter>
+    </ClInclude>
+    <ClInclude Include="spectre\Spectre.h">
+      <Filter>Spectre</Filter>
+    </ClInclude>
+    <ClInclude Include="spectre\ExternalCallbackTypes.h">
+      <Filter>Spectre</Filter>
+    </ClInclude>
+    <ClInclude Include="DiscordRichPresense.h">
+      <Filter>Interfaces\Discord</Filter>
+    </ClInclude>
+    <ClInclude Include="CameraFirstEye.h">
+      <Filter>Game API\Cameras</Filter>
+    </ClInclude>
+    <ClInclude Include="IGame_AnselSDK.h">
+      <Filter>Interfaces\Ansel SDK</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="defines.cpp">
@@ -944,6 +971,24 @@
     <ClCompile Include="Stats.cpp">
       <Filter>Device\Stats</Filter>
     </ClCompile>
+    <ClCompile Include="IGame_Actor.cpp">
+      <Filter>Game API</Filter>
+    </ClCompile>
+    <ClCompile Include="spectre\Spectre.cpp">
+      <Filter>Spectre</Filter>
+    </ClCompile>
+    <ClCompile Include="spectre\ExternalCallbackTypes.cpp">
+      <Filter>Spectre</Filter>
+    </ClCompile>
+    <ClCompile Include="DiscordRichPresense.cpp">
+      <Filter>Interfaces\Discord</Filter>
+    </ClCompile>
+    <ClCompile Include="CameraFirstEye.cpp">
+      <Filter>Game API\Cameras</Filter>
+    </ClCompile>
+    <ClCompile Include="IGame_AnselSDK.cpp">
+      <Filter>Interfaces\Ansel SDK</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="TODO.txt">
@@ -954,6 +999,9 @@
     </None>
     <None Include="Effects description.txt">
       <Filter>Engine</Filter>
+    </None>
+    <None Include="OffSetOfWrapper.inl">
+      <Filter>Interfaces\Input</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 enum EGameActions
 {
@@ -22,6 +22,8 @@ enum EGameActions
 	kCAM_1,
 	kCAM_2,
 	kCAM_3,
+	kCAM_ZOOM_IN,
+	kCAM_ZOOM_OUT,
 						
 	kTORCH,
 	kNIGHT_VISION,

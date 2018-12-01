@@ -1,4 +1,4 @@
-//-----------------------------------------------------------------------------
+﻿//-----------------------------------------------------------------------------
 // File: x_ray.cpp
 //
 // Programmers:
@@ -21,7 +21,7 @@
 #include <process.h>
 #include <locale.h>
 #include "DynamicSplash.h"
-
+#include "DiscordRichPresense.h"
 
 #include "../FrayBuildConfig.hpp"
 //---------------------------------------------------------------------
@@ -40,7 +40,10 @@ struct _SoundProcessor : public pureFrame
 	virtual void _BCL OnFrame()
 	{
 		Device.Statistic->Sound.Begin();
-		::Sound->update(Device.vCameraPosition, Device.vCameraDirection, Device.vCameraTop);
+		if (::Sound != nullptr)
+		{
+			::Sound->update(Device.vCameraPosition, Device.vCameraDirection, Device.vCameraTop);
+		}
 		Device.Statistic->Sound.End();
 	}
 }	SoundProcessor;
@@ -101,6 +104,11 @@ ENGINE_API void InitInput()
 	pInput = xr_new<CInput>(bCaptureInput);
 }
 
+ENGINE_API void InitInput(bool bExclusiveMode)
+{
+	pInput = xr_new<CInput>(bExclusiveMode);
+}
+
 void destroyInput()
 {
 	xr_delete(pInput);
@@ -149,6 +157,9 @@ void execUserScript()
 
 void Startup()
 {
+	if (Device.editor())
+		bEngineloaded = true;
+
 	splashScreen.SetProgressPosition(60, "Init sound");
 	InitSound1		();
 	splashScreen.SetProgressPosition(65, "Init user scripts");
@@ -183,21 +194,23 @@ void Startup()
 	bEngineloaded = true;
 	Device.UpdateWindowPropStyle();
 	splashScreen.HideSplash();
-	Device.Create();
+	Device.Create(Device.editor());
 
 	pApp = xr_new<CApplication>();
 	g_pGamePersistent = (IGame_Persistent*)NEW_INSTANCE(CLSID_GAME_PERSISTANT);
 	g_SpatialSpace = xr_new<ISpatial_DB>();
 	g_SpatialSpacePhysic = xr_new<ISpatial_DB>();
+	g_discord.Initialize();
 
 	Memory.mem_usage();
 	Device.Run();
 	
 	// Destroy APP
-	xr_delete(g_SpatialSpacePhysic);
-	xr_delete(g_SpatialSpace);
-	DEL_INSTANCE(g_pGamePersistent);
-	xr_delete(pApp);
+	g_discord.Shutdown();
+	xr_delete(g_SpatialSpacePhysic); g_SpatialSpacePhysic = nullptr;
+	xr_delete(g_SpatialSpace);		 g_SpatialSpace = nullptr;
+	DEL_INSTANCE(g_pGamePersistent); g_pGamePersistent = nullptr;
+	xr_delete(pApp); pApp = nullptr;
 	Engine.Event.Dump();
 
 	// Destroying
@@ -339,14 +352,13 @@ extern "C"
 void ENGINE_API RunApplication(LPCSTR commandLine)
 {
 	gMainThreadId = GetCurrentThreadId();
-	Debug.set_mainThreadId(gMainThreadId);
 
 	// Title window
 	HWND logoInsertPos = HWND_TOPMOST;
 	if (IsDebuggerPresent()) { logoInsertPos = HWND_NOTOPMOST; }
 
 	InitSplash(GetModuleHandle(NULL), "OXYGEN_SPLASH", logDlgProc);
-	splashScreen.SetProgressColor(RGB(0x5B, 0xA5, 0xC1));
+	splashScreen.SetProgressColor(RGB(0x6F, 0x3B, 0x9B));
 
 	// AVI
 	g_bIntroFinished = true;
@@ -356,7 +368,6 @@ void ENGINE_API RunApplication(LPCSTR commandLine)
 
 	splashScreen.SetProgressPosition(15, "Init settings");
 	InitSettings();
-	
 
 	if (strstr(Core.Params, "-renderdebug"))
 	{
@@ -539,8 +550,10 @@ void CApplication::OnEvent(EVENT E, u64 P1, u64 P2)
 				Console->Execute("main_menu on");
 			}
 		}
-		R_ASSERT			(0!=g_pGamePersistent);
-		g_pGamePersistent->Disconnect();
+
+		// Special for new editor
+		if(g_pGamePersistent)
+			g_pGamePersistent->Disconnect();
 	}
 	else if (E == eConsole)
 	{
@@ -729,7 +742,7 @@ void CApplication::Level_Set(u32 L)
 
 	if (path[0] && loadingScreen)
 		loadingScreen->SetLevelLogo(path);
-
+	g_discord.SetStatus(xrDiscordPresense::StatusId::In_Game);
 }
 
 int CApplication::Level_ID(LPCSTR name, LPCSTR ver, bool bSet)
@@ -761,6 +774,10 @@ int CApplication::Level_ID(LPCSTR name, LPCSTR ver, bool bSet)
 	{
 		if (0==stricmp(buffer,Levels[I].folder))	
 		{
+			if (Levels[I].name == nullptr)
+			{
+				Levels[I].name = strdup(name);
+			}
 			result = int(I);	
 			break;
 		}
@@ -804,4 +821,6 @@ void CApplication::load_draw_internal()
 {
 	if (loadingScreen)
 		loadingScreen->Update(load_stage, max_load_stage);
+	else
+		Device.m_pRender->ClearTarget();
 }

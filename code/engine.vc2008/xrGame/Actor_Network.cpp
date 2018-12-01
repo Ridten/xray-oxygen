@@ -8,15 +8,13 @@
 #include "../xrEngine/CustomHUD.h"
 #include "../xrEngine/x_ray.h"
 #include "CameraLook.h"
-#include "CameraFirstEye.h"
 
 #include "ActorEffector.h"
 
-#include "../xrphysics/iPHWorld.h"
-#include "../xrphysics/actorcameracollision.h"
+#include "../xrPhysics/iPHWorld.h"
+#include "../xrPhysics/actorcameracollision.h"
 #include "level.h"
 #include "..\xrEngine\xr_level_controller.h"
-#include "game_cl_base.h"
 #include "infoportion.h"
 #include "alife_registry_wrappers.h"
 #include "../Include/xrRender/Kinematics.h"
@@ -24,10 +22,10 @@
 #include "hit.h"
 #include "PHDestroyable.h"
 #include "CharacterPhysicsSupport.h"
-#include "Grenade.h"
-#include "WeaponMagazined.h"
-#include "WeaponKnife.h"
-#include "CustomOutfit.h"
+#include "items/Grenade.h"
+#include "items/WeaponMagazined.h"
+#include "items/WeaponKnife.h"
+#include "items/CustomOutfit.h"
 
 #include "actor_anim_defs.h"
 
@@ -43,7 +41,7 @@
 #include "holder_custom.h"
 #include "actor_memory.h"
 #include "characterphysicssupport.h"
-#include "../xrengine/xr_collide_form.h"
+#include "../xrEngine/xr_collide_form.h"
 #ifdef DEBUG
 #	include "debug_renderer.h"
 #	include "../xrPhysics/phvalide.h"
@@ -51,11 +49,10 @@
 
 int			g_dwInputUpdateDelta		= 20;
 BOOL		net_cl_inputguaranteed		= FALSE;
-CActor*		g_actor						= nullptr;
 
 CActor* Actor()	
 {
-	return (g_actor); 
+	return (CActor*)g_actor; 
 }
 //--------------------------------------------------------------------
 void	CActor::ConvState(u32 mstate_rl, string128 *buf)
@@ -282,11 +279,6 @@ BOOL CActor::net_Spawn(CSE_Abstract* DC)
 	unaffected_r_torso.yaw = r_torso.yaw;
 	unaffected_r_torso.pitch = r_torso.pitch;
 	unaffected_r_torso.roll = r_torso.roll;
-
-	if (psActorFlags.test(AF_PSP))
-		cam_Set(eacLookAt);
-	else
-		cam_Set(eacFirstEye);
 
 	cam_Active()->Set(-E->o_torso.yaw, E->o_torso.pitch, 0);
 

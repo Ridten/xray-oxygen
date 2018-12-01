@@ -9,7 +9,7 @@ void CRenderTarget::PhaseGammaGenerateLUT()
 	float _h = float(Device.dwHeight);
 
 	Fvector2 p0, p1;
-#if defined(USE_DX10) || defined(USE_DX11)
+#ifdef USE_DX11
 	p0.set(0.0f, 0.0f);
 	p1.set(1.0f, 1.0f);
 #else
@@ -41,31 +41,12 @@ void CRenderTarget::PhaseGammaGenerateLUT()
 	RCache.set_c		("color_grading", color_grading.x, color_grading.y, color_grading.z, 0.0f);
 	RCache.set_Geometry	(g_combine);
 	RCache.Render		(D3DPT_TRIANGLELIST, Offset, 0, 4, 0, 2);
-
-/*
-	float _w = float(Device.dwWidth);
-	float _h = float(Device.dwHeight);
-
-	// Consts
-	float brightness		= dxRenderDeviceRender::Instance().GetBrightness();
-	float gamma				= dxRenderDeviceRender::Instance().GetGamma();
-	float contrast			= dxRenderDeviceRender::Instance().GetContrast();
-	Fvector color_grading	= dxRenderDeviceRender::Instance().GetBalance();
-
-	Fvector4 color_params	= { brightness, gamma, contrast, 0.0f };
-	Fvector4 color_grading4	= { color_grading.x, color_grading.y, color_grading.z, 0.0f };
-	xr_unordered_map<LPCSTR, Fvector4*> consts;
-	consts.insert(std::make_pair("color_params", &color_params));
-	consts.insert(std::make_pair("color_grading", &color_grading4));
-
-	RenderScreenQuad(_w, _h, rt_GammaLUT, s_gamma->E[0], &consts);
-*/
 }
 
 void CRenderTarget::PhaseGammaApply()
 {
 	// Copy back buffer content to the rt_Generic_0
-#if defined(USE_DX10) || defined(USE_DX11)
+#ifdef USE_DX11
 	ID3DResource* pTmpTexture = rt_Generic_0->pTexture->surface_get();
 	HW.pBaseRT->GetResource(&pTmpTexture);
 	HW.pContext->CopyResource(rt_Generic_0->pTexture->surface_get(), pTmpTexture);
@@ -76,26 +57,21 @@ void CRenderTarget::PhaseGammaApply()
 	//CHK_DX(HW.pDevice->GetRenderTargetData(HW.pBaseRT, rt_Generic_0->pRT));
 #endif
 
-	float _w = float(Device.dwWidth);
-	float _h = float(Device.dwHeight);
 	RCache.set_Z(FALSE);
-	RenderScreenQuad(_w, _h, HW.pBaseRT, s_gamma->E[1]);
+	RenderScreenQuad(Device.dwWidth, Device.dwHeight, HW.pBaseRT, s_gamma->E[1]);
 }
 
+#ifdef DEBUG
 void CRenderTarget::SaveGammaLUT()
 {
 	ID3DBlob* saved = nullptr;
 
-#if defined(USE_DX10) || defined(USE_DX11)
+#ifdef USE_DX11
 	ID3DResource* pSrcTexture;
 	rt_GammaLUT->pRT->GetResource(&pSrcTexture);
 	VERIFY(pSrcTexture);
 
-#ifdef USE_DX11
 	CHK_DX(D3DX11SaveTextureToMemory(HW.pContext, pSrcTexture, D3DX11_IFF_PNG, &saved, 0));
-#else
-	CHK_DX(D3DX10SaveTextureToMemory(pSrcTexture, D3DX10_IFF_PNG, &saved, 0));
-#endif
 	_RELEASE(pSrcTexture);
 #else
 	IDirect3DSurface9* pFB;
@@ -132,3 +108,4 @@ void CRenderTarget::SaveGammaLUT()
 	FS.w_close(fs);
 	_RELEASE(saved);
 }
+#endif

@@ -1,7 +1,7 @@
 #include "stdafx.h"
 #include "UIActorMenu.h"
 #include "UIActorStateInfo.h"
-#include "../actor.h"
+#include "../Actor.h"
 #include "../UiGame.h"
 #include "../inventory.h"
 #include "../inventory_item.h"
@@ -9,32 +9,32 @@
 #include "object_broker.h"
 #include "../ai/monsters/BaseMonster/base_monster.h"
 #include "UIInventoryUtilities.h"
-#include "game_cl_base.h"
 
-#include "../Weapon.h"
-#include "../WeaponMagazinedWGrenade.h"
-#include "../WeaponAmmo.h"
-#include "../Silencer.h"
-#include "../Scope.h"
-#include "../GrenadeLauncher.h"
+
+#include "../items/Weapon.h"
+#include "../items/WeaponMagazinedWGrenade.h"
+#include "../items/WeaponAmmo.h"
+#include "../items/Silencer.h"
+#include "../items/Scope.h"
+#include "../items/GrenadeLauncher.h"
 #include "../trade_parameters.h"
-#include "../ActorHelmet.h"
-#include "../CustomOutfit.h"
+#include "../items/Helmet.h"
+#include "../items/CustomOutfit.h"
 #include "../CustomDetector.h"
 #include "../eatable_item.h"
 
-#include "UIProgressBar.h"
-#include "UICursor.h"
+#include "../xrUICore/UIProgressBar.h"
+#include "../xrUICore/UICursor.h"
 #include "UICellItem.h"
 #include "UICharacterInfo.h"
 #include "UIItemInfo.h"
 #include "UIDragDropListEx.h"
 #include "UIDragDropReferenceList.h"
 #include "UIInventoryUpgradeWnd.h"
-#include "UI3tButton.h"
-#include "UIBtnHint.h"
-#include "UIMessageBoxEx.h"
-#include "UIPropertiesBox.h"
+#include "../xrUICore/UI3tButton.h"
+#include "../xrUICore/UIBtnHint.h"
+#include "../xrUICore/UIMessageBoxEx.h"
+#include "../../xrUICore/UIPropertiesBox.h"
 #include "UIMainIngameWnd.h"
 #include "../Trade.h"
 #include "../ActorRuck.h"
@@ -253,6 +253,7 @@ EDDListType CUIActorMenu::GetListType(CUIDragDropListEx* l)
 
     if (l == m_pInventoryKnifeList)         return iActorSlot;
     if (l == m_pInventoryBinocularList)     return iActorSlot;
+    if (l == m_pInventoryTorchList)         return iActorSlot;
 	
 	if (l == m_pTradeActorBagList)			return iActorBag;
 	if (l == m_pTradeActorList)			    return iActorTrade;
@@ -400,7 +401,7 @@ void CUIActorMenu::clear_highlight_lists()
 
     m_KnifeSlotHighlight->Show(false);
     m_BinocularSlotHighlight->Show(false);
-
+    m_TorchSlotHighlight->Show(false);
 	
 	for(u8 i=0; i<4; i++)
 		m_QuickSlotsHighlight[i]->Show(false);
@@ -450,6 +451,12 @@ void CUIActorMenu::highlight_item_slot(CUICellItem* cell_item)
     if (item_slot == KNIFE_SLOT)
     {
         m_KnifeSlotHighlight->Show(true);
+        return;
+    }
+	
+	if (item_slot == TORCH_SLOT)
+    {
+        m_TorchSlotHighlight->Show(true);
         return;
     }
 	
@@ -514,7 +521,7 @@ void CUIActorMenu::highlight_item_slot(CUICellItem* cell_item)
 	}
 }
 
-#include "../WeaponKnife.h"
+#include "../items/WeaponKnife.h"
 void CUIActorMenu::set_highlight_item( CUICellItem* cell_item )
 {
 	PIItem item = (PIItem)cell_item->m_pData;
@@ -778,6 +785,7 @@ void CUIActorMenu::ClearAllLists()
 
     m_pInventoryKnifeList->ClearAll             (true);
     m_pInventoryBinocularList->ClearAll         (true);
+    m_pInventoryTorchList->ClearAll             (true);
 	
 	m_pQuickSlot->ClearAll						(true);
 
@@ -809,13 +817,6 @@ void CUIActorMenu::ResetMode()
 	m_UIPropertiesBox->Hide		();
 	SetCurrentItem				(NULL);
     GameUI()->UIMainIngameWnd->ShowZoneMap(true);
-}
-
-void CUIActorMenu::UpdateActorMP()
-{
-	m_ActorCharacterInfo->ClearInfo();
-	m_ActorMoney->SetText("");
-	return;
 }
 
 bool CUIActorMenu::CanSetItemToList(PIItem item, CUIDragDropListEx* l, u16& ret_slot)
@@ -906,17 +907,13 @@ void CUIActorMenu::TryRepairItem(CUIWindow* w, void* d)
 	LPCSTR partner = m_pPartnerInvOwner->CharacterInfo().Profile().c_str();
 
 	luabind::functor<bool> funct;
-	R_ASSERT2(
-		ai().script_engine().functor("inventory_upgrades.can_repair_item", funct),
-		make_string("Failed to get functor <inventory_upgrades.can_repair_item>, item = %s", item_name)
-	);
+	R_ASSERT_FORMAT(ai().script_engine().functor("inventory_upgrades.can_repair_item", funct),
+		"Failed to get functor <inventory_upgrades.can_repair_item>, item = %s", item_name);
 	bool can_repair = funct(item_name, item->GetCondition(), partner);
 
 	luabind::functor<LPCSTR> funct2;
-	R_ASSERT2(
-		ai().script_engine().functor("inventory_upgrades.question_repair_item", funct2),
-		make_string("Failed to get functor <inventory_upgrades.question_repair_item>, item = %s", item_name)
-	);
+	R_ASSERT_FORMAT(ai().script_engine().functor("inventory_upgrades.question_repair_item", funct2),
+		"Failed to get functor <inventory_upgrades.question_repair_item>, item = %s", item_name);
 	LPCSTR question = funct2(item_name, item->GetCondition(), can_repair, partner);
 
 	if (can_repair)
@@ -957,10 +954,8 @@ bool CUIActorMenu::CanUpgradeItem(PIItem item)
 	LPCSTR partner = m_pPartnerInvOwner->CharacterInfo().Profile().c_str();
 
 	luabind::functor<bool> funct;
-	R_ASSERT2(
-		ai().script_engine().functor("inventory_upgrades.can_upgrade_item", funct),
-		make_string("Failed to get functor <inventory_upgrades.can_upgrade_item>, item = %s, mechanic = %s", item_name, partner)
-	);
+	R_ASSERT_FORMAT(ai().script_engine().functor("inventory_upgrades.can_upgrade_item", funct),
+		"Failed to get functor <inventory_upgrades.can_upgrade_item>, item = %s, mechanic = %s", item_name, partner);
 
 	return funct(item_name, partner);
 }

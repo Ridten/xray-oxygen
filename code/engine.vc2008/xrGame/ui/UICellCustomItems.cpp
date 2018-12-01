@@ -1,9 +1,8 @@
 #include "stdafx.h"
 #include "UICellCustomItems.h"
 #include "UIInventoryUtilities.h"
-#include "../Weapon.h"
 #include "UIDragDropListEx.h"
-#include "UIProgressBar.h"
+#include "../xrUICore/UIProgressBar.h"
 
 #define INV_GRID_WIDTHF			50.0f
 #define INV_GRID_HEIGHTF		50.0f

@@ -1,6 +1,5 @@
 #include "stdafx.h"
 #include "missile.h"
-//.#include "WeaponHUD.h"
 #include "../xrphysics/PhysicsShell.h"
 #include "actor.h"
 #include "../xrEngine/CameraBase.h"
@@ -15,29 +14,28 @@
 #include "characterphysicssupport.h"
 #include "inventory.h"
 #include "../xrEngine/IGame_Persistent.h"
+
 #ifdef DEBUG
 #	include "phdebug.h"
 #endif
 
+static const int PLAYING_ANIM_TIME = 10000;
 
-#define PLAYING_ANIM_TIME 10000
-
-#include "ui/UIProgressShape.h"
-#include "ui/UIXmlInit.h"
+#include "../xrUICore/UIProgressShape.h"
+#include "../xrUICore/UIXmlInit.h"
 #include "physicsshellholder.h"
 
 CUIProgressShape* g_MissileForceShape = nullptr;
 
 void create_force_progress()
 {
-	VERIFY							(!g_MissileForceShape);
-	CUIXml uiXml;
-	uiXml.Load						(CONFIG_PATH, UI_PATH, "ui_HUD.xml");
+	VERIFY(!g_MissileForceShape);
+	CXml uiXml;
+	uiXml.Load(CONFIG_PATH, UI_PATH, "ui_HUD.xml");
 
-
-	CUIXmlInit						xml_init;
-	g_MissileForceShape				= xr_new<CUIProgressShape>();
-	xml_init.InitProgressShape		(uiXml, "progress", 0, g_MissileForceShape);
+	CUIXmlInit xml_init;
+	g_MissileForceShape = xr_new<CUIProgressShape>();
+	xml_init.InitProgressShape(uiXml, "progress", 0, g_MissileForceShape);
 }
 
 CMissile::CMissile() 
@@ -225,70 +223,82 @@ void CMissile::shedule_Update(u32 dt)
 	} 
 }
 
-void CMissile::State(u32 state) 
+void CMissile::State(u32 state, u32 oldState)
 {
-	switch(GetState()) 
+	switch (GetState())
 	{
-	case eShowing:
-        {
-			SetPending			(TRUE);
+		case eShowing:
+		{
+			SetPending(TRUE);
 			PlayHUDMotion("anm_show", FALSE, this, GetState());
-		} break;
-	case eIdle:
+			break;
+		}
+
+		case eIdle:
 		{
-			SetPending			(FALSE);
-			PlayAnimIdle		();
-		} break;
-	case eHiding:
+			SetPending(FALSE);
+			PlayAnimIdle();
+			break;
+		}
+
+		case eHiding:
 		{
-			if(H_Parent())
+			if (H_Parent() && oldState != eHiding)
 			{
-				SetPending			(TRUE);
-				PlayHUDMotion		("anm_hide", TRUE, this, GetState());
+				SetPending(TRUE);
+				PlayHUDMotion("anm_hide", TRUE, this, GetState());
 			}
-		} break;
-	case eHidden:
+			break;
+		}
+
+		case eHidden:
 		{
-			
-		
-			StopCurrentAnimWithoutCallback	();
-			
-			
+			StopCurrentAnimWithoutCallback();
+
 			if (H_Parent())
-			{				
+			{
 				setVisible(FALSE);
-				setEnabled(FALSE);				
-			};
-			SetPending			(FALSE);
-		} break;
-	case eThrowStart:
+				setEnabled(FALSE);
+			}
+			SetPending(FALSE);
+			break;
+		}
+
+		case eThrowStart:
 		{
-			SetPending			(TRUE);
-			m_fThrowForce		= m_fMinForce;
-			PlayHUDMotion		("anm_throw_begin", TRUE, this, GetState());
-		} break;
-	case eReady:
+			SetPending(TRUE);
+			m_fThrowForce = m_fMinForce;
+			PlayHUDMotion("anm_throw_begin", TRUE, this, GetState());
+			break;
+		}
+
+		case eReady:
 		{
-			PlayHUDMotion		("anm_throw_idle", TRUE, this, GetState());
-		} break;
-	case eThrow:
+			PlayHUDMotion("anm_throw_idle", TRUE, this, GetState());
+			break;
+		}
+
+		case eThrow:
 		{
-			SetPending			(TRUE);
-			m_throw				= false;
-			PlayHUDMotion		("anm_throw", TRUE, this, GetState());
-		} break;
-	case eThrowEnd:
+			SetPending(TRUE);
+			m_throw = false;
+			PlayHUDMotion("anm_throw", TRUE, this, GetState());
+			break;
+		}
+
+		case eThrowEnd:
 		{
-			SwitchState			(eShowing); 
-		} break;
+			SwitchState(eShowing);
+			break;
+		}
 	}
 }
 
-void CMissile::OnStateSwitch	(u32 S)
+void CMissile::OnStateSwitch(u32 S, u32 oldState)
 {
-	m_dwStateTime				= 0;
-	inherited::OnStateSwitch	(S);
-	State						(S);
+	m_dwStateTime = 0;
+	inherited::OnStateSwitch(S, oldState);
+	State(S, oldState);
 }
 
 void CMissile::OnAnimationEnd(u32 state) 

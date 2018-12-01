@@ -9,12 +9,10 @@
 #include "PHCommander.h"
 #include "PHScriptCall.h"
 #include "CustomRocket.h"
-#include "Grenade.h"
+#include "items/Grenade.h"
 
-//#include "phactivationshape.h"
 #include "../xrphysics/iphworld.h"
 #include "../xrphysics/iActivationShape.h"
-//#include "../xrphysics/phvalide.h"
 #include "characterphysicssupport.h"
 #include "phmovementcontrol.h"
 #include "../xrphysics/physics_shell_animated.h"
@@ -170,9 +168,9 @@ void CPhysicsShellHolder::correct_spawn_pos()
 	Fvector								c;
 	get_box								(PPhysicsShell(),XFORM(),size,c);
 
-	R_ASSERT2( _valid( c ), make_string( "object: %s model: %s ", cName().c_str(), cNameVisual().c_str() ) );
-	R_ASSERT2( _valid( size ), make_string( "object: %s model: %s ", cName().c_str(), cNameVisual().c_str() ) );
-	R_ASSERT2( _valid( XFORM() ), make_string( "object: %s model: %s ", cName().c_str(), cNameVisual().c_str() ) );
+	R_ASSERT_FORMAT(_valid(c),			"object: %s model: %s ", cName().c_str(), cNameVisual().c_str());
+	R_ASSERT_FORMAT(_valid(size),		"object: %s model: %s ", cName().c_str(), cNameVisual().c_str());
+	R_ASSERT_FORMAT(_valid(XFORM()),	"object: %s model: %s ", cName().c_str(), cNameVisual().c_str());
 	PPhysicsShell()->DisableCollision	();
 
 	Fvector								ap = Fvector().set(0,0,0);
@@ -225,7 +223,6 @@ void CPhysicsShellHolder::activate_physic_shell()
 	}
 	smart_cast<IKinematics*>(Visual())->CalculateBones_Invalidate	();
 	smart_cast<IKinematics*>(Visual())->CalculateBones(TRUE);
-	if(!smart_cast<CCustomRocket*>(this)&&!smart_cast<CGrenade*>(this)) PPhysicsShell()->SetIgnoreDynamic();
 	
 //	XFORM().set					(l_p1);
 	correct_spawn_pos();
@@ -592,7 +589,7 @@ void	CPhysicsShellHolder::BonceDamagerCallback(float &damage_factor)
 			damage_factor=phs->BonceDamageFactor();
 }
 
-std::string	CPhysicsShellHolder::dump(EDumpType type) const
+xr_string	CPhysicsShellHolder::dump(EDumpType type) const
 {
 	switch(type)
 	{
@@ -602,7 +599,7 @@ std::string	CPhysicsShellHolder::dump(EDumpType type) const
 	case	props:				return dbg_object_props_dump_string( this );					break;
 	case	full:				return dbg_object_full_dump_string( this);						break;
 	case	full_capped:		return dbg_object_full_capped_dump_string( this );				break;
-	default: NODEFAULT;			return std::string("fail!");
+	default: NODEFAULT;			return xr_string("fail!");
 	}
 
 }

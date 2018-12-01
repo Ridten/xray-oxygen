@@ -17,7 +17,7 @@ XCore::XCore()
 { 
 	// init COM-pointers if not editor 
 	// because xrEditor written on C# + C++/CLI and use COM-pointers
-	if (!strstr(Core.Params, "-editor")) { CoInitializeEx(NULL, COINIT_MULTITHREADED); }
+	//if (!strstr(Core.Params, "-editor")) { CoInitializeEx(NULL, COINIT_MULTITHREADED); }
 
 	// load any version of XAudio2
 	XAudioDLL = ::LoadLibraryExA("XAudio2_9.DLL", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
@@ -59,7 +59,6 @@ XCore::~XCore()
 
 	// free library and unitialize COM-pointers
 	if (XAudioDLL) { FreeLibrary(XAudioDLL); }
-	if (!strstr(Core.Params, "-editor")) { CoUninitialize(); }
 
 	// reset XAudio2 data pointer
 	xData.waveData.reset();
@@ -281,7 +280,8 @@ void CSoundRender_CoreB::_initialize(int stage)
 	// init XAudio2 pointers
 	if (FAILEDX(coreAudio.InitXAudioDevice()))
 	{
-		__debugbreak();
+		R_ASSERT2(false, "xAudio2 devices not found!");
+		return;
 	}
 
 	{
@@ -311,14 +311,26 @@ void CSoundRender_CoreB::_initialize(int stage)
 
 	inherited::_initialize(stage);
 
-	//CSoundRender_Target* T = nullptr;
-
-	// init all targets
-	for (DWORD tit = 0; tit < DWORD(psSoundTargets); tit++)
+	//first initialize
+	if (stage == 1)
 	{
-		//T = xr_new<CSoundRender_TargetB>();
-		//T->_initialize();
-		//s_targets.push_back(T);
+		// Pre-create targets
+		CSoundRender_Target* T = 0;
+		for (u32 tit = 0; tit < u32(psSoundTargets); ++tit)
+		{
+			T = new CSoundRender_TargetB();
+			if (T->_initialize())
+			{
+				s_targets.push_back(T);
+			}
+			else
+			{
+				Log("[xAudio2] ! SOUND: xAudio2: Max targets - ", tit);
+				T->_destroy();
+				xr_delete(T);
+				break;
+			}
+		}
 	}
 	
 	Msg("XAudio2 was initialized on device: %s", GetAnsiStringFromUnicodeString(coreAudio.xData.deviceDetail.DisplayName));
@@ -329,7 +341,7 @@ void CSoundRender_CoreB::_clear()
 	inherited::_clear();
 	
 	// remove all targets
-	CSoundRender_Target*	T = 0;
+	CSoundRender_Target* T = 0;
 	for (u32 tit = 0; tit < s_targets.size(); tit++)
 	{
 		T = s_targets[tit];

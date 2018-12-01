@@ -1,18 +1,17 @@
 #include "stdafx.h"
 #include "../xrEngine/xr_ioconsole.h"
 #include "customzone.h"
-#include "hit.h"
+#include "Hit.h"
 #include "PHDestroyable.h"
-#include "actor.h"
+#include "Actor.h"
 #include "../xrParticles/psystem.h"
 #include "../xrParticles/ParticlesObject.h"
-#include "xrserver_objects_alife_monsters.h"
+#include "xrServer_Objects_Alife_Monsters.h"
 #include "../xrEngine/LightAnimLibrary.h"
 #include "level.h"
-#include "game_cl_base.h"
 #include "../xrEngine/igame_persistent.h"
 #include "../xrengine/xr_collide_form.h"
-#include "artefact.h"
+#include "items/Artefact.h"
 #include "ai_object_location.h"
 #include "../Include/xrRender/Kinematics.h"
 #include "zone_effector.h"
@@ -271,7 +270,6 @@ void CCustomZone::Load(LPCSTR section)
 		m_fIdleLightHeight = pSettings->r_float(section, "idle_light_height");
 		m_zone_flags.set(eIdleLightVolumetric, pSettings->r_bool(section, "idle_light_volumetric"));
 		m_zone_flags.set(eIdleLightShadow, pSettings->r_bool(section, "idle_light_shadow"));
-		m_zone_flags.set(eIdleLightR1, pSettings->r_bool(section, "idle_light_r1"));
 
 		// Загрузка параметров для волуметрик-луча;
 		volumetric_distance = READ_IF_EXISTS(pSettings, r_float, section, "volumetric_distance", 0.80);
@@ -314,12 +312,7 @@ BOOL CCustomZone::net_Spawn(CSE_Abstract* DC)
 	m_zone_flags.set			(eUseOnOffTime,	(m_TimeToDisable!=0)&&(m_TimeToEnable!=0) );
 
 	//добавить источники света
-	bool br1 = (0==psDeviceFlags.test(rsR2|rsR3|rsR4));
-	
-	
-	bool render_ver_allowed = !br1 || (br1&&m_zone_flags.test(eIdleLightR1)) ;
-
-	if ( m_zone_flags.test(eIdleLight) && render_ver_allowed)
+	if (m_zone_flags.test(eIdleLight))
 	{
 		m_pIdleLight = ::Render->light_create();
 		m_pIdleLight->set_shadow(!!m_zone_flags.test(eIdleLightShadow));
@@ -767,7 +760,7 @@ void CCustomZone::PlayHitParticles(CGameObject* pObject)
 		}
 	}
 }
-#include "bolt.h"
+#include "items/bolt.h"
 void CCustomZone::PlayEntranceParticles(CGameObject* pObject)
 {
 	m_entrance_sound.play_at_pos		(nullptr, pObject->Position());
@@ -1192,15 +1185,15 @@ void CCustomZone::StartWind()
 
 	m_zone_flags.set(eBlowoutWindActive, true);
 
-	m_fStoreWindPower = g_pGamePersistent->Environment().wind_strength_factor;
-	clamp(g_pGamePersistent->Environment().wind_strength_factor, 0.f, 1.f);
+	m_fStoreWindPower = Environment().wind_strength_factor;
+	clamp(Environment().wind_strength_factor, 0.f, 1.f);
 }
 
 void CCustomZone::StopWind()
 {
 	if(!m_zone_flags.test(eBlowoutWindActive)) return;
 	m_zone_flags.set(eBlowoutWindActive, false);
-	g_pGamePersistent->Environment().wind_strength_factor = m_fStoreWindPower;
+	Environment().wind_strength_factor = m_fStoreWindPower;
 }
 
 void CCustomZone::UpdateWind()
@@ -1215,17 +1208,17 @@ void CCustomZone::UpdateWind()
 
 	if(m_dwBlowoutWindTimePeak > (u32)m_iStateTime)
 	{
-		g_pGamePersistent->Environment().wind_strength_factor = m_fBlowoutWindPowerMax + ( m_fStoreWindPower - m_fBlowoutWindPowerMax)*
+		Environment().wind_strength_factor = m_fBlowoutWindPowerMax + ( m_fStoreWindPower - m_fBlowoutWindPowerMax)*
 								float(m_dwBlowoutWindTimePeak - (u32)m_iStateTime)/
 								float(m_dwBlowoutWindTimePeak - m_dwBlowoutWindTimeStart);
-		clamp(g_pGamePersistent->Environment().wind_strength_factor, 0.f, 1.f);
+		clamp(Environment().wind_strength_factor, 0.f, 1.f);
 	}
 	else
 	{
-		g_pGamePersistent->Environment().wind_strength_factor = m_fBlowoutWindPowerMax + (m_fStoreWindPower - m_fBlowoutWindPowerMax)*
+		Environment().wind_strength_factor = m_fBlowoutWindPowerMax + (m_fStoreWindPower - m_fBlowoutWindPowerMax)*
 			float((u32)m_iStateTime - m_dwBlowoutWindTimePeak)/
 			float(m_dwBlowoutWindTimeEnd - m_dwBlowoutWindTimePeak);
-		clamp(g_pGamePersistent->Environment().wind_strength_factor, 0.f, 1.f);
+		clamp(Environment().wind_strength_factor, 0.f, 1.f);
 	}
 }
 

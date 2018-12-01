@@ -1,10 +1,10 @@
 #pragma once
-#include "../../xrcdb/ispatial.h"
+#include "../../xrCDB/ISpatial.h"
 
 #ifndef ENGINE_BUILD
 #	include "light_package.h"
 #	include "light_smapvis.h"
-#	include "light_GI.h"
+#	include "RenderLightGI.h"
 #endif
 
 class light: public IRender_Light, public ISpatial
@@ -56,7 +56,7 @@ public:
 #endif	//	(RENDER==R_R3) || (RENDER==R_R4)
 
 	u32				m_xform_frame;
-	Fmatrix			m_xform;
+	Matrix4x4		m_xform;
 
 	struct _vis		{
 		u32			frame2test;		// frame the test is sheduled to
@@ -67,23 +67,48 @@ public:
 		u16			smap_ID;
 	}				vis;
 
-	union			_xform	{
-		struct		_D		{
-			Fmatrix						combine	;
+	union _xform	
+	{
+		_xform()
+		{
+			D.combine = Matrix4x4();
+			D.minX = D.maxX = D.minY = D.maxY = 0;
+			D.transluent = false;
+
+			P.world	  = Matrix4x4();
+			P.view	  = Matrix4x4();
+			P.project = Matrix4x4();
+			P.combine = Matrix4x4();
+
+			S.view	= Matrix4x4();	
+			S.project	= Matrix4x4();	
+			S.combine	= Matrix4x4();	
+			S.size	= 0;	
+			S.posX	= 0;	
+			S.posY	= 0;	
+			S.transluent = false;
+		}
+		struct _D		
+		{
+			Matrix4x4					combine	;
 			s32							minX,maxX	;
 			s32							minY,maxY	;
 			BOOL						transluent	;
 		}	D;
-		struct		_P		{
-			Fmatrix						world		;
-			Fmatrix						view		;
-			Fmatrix						project		;
-			Fmatrix						combine		;
+
+		struct _P		
+		{
+			Matrix4x4					world		;
+			Matrix4x4					view		;
+			Matrix4x4					project		;
+			Matrix4x4					combine		;
 		}	P;
-		struct		_S		{
-			Fmatrix						view		;
-			Fmatrix						project		;
-			Fmatrix						combine		;
+
+		struct _S		
+		{
+			Matrix4x4					view		;
+			Matrix4x4					project		;
+			Matrix4x4					combine		;
 			u32							size		;
 			u32							posX		;
 			u32							posY		;

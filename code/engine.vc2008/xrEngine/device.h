@@ -1,18 +1,13 @@
-#pragma once
-
+﻿#pragma once
 // Note:
 // ZNear - always 0.0f
 // ZFar  - always 1.0f
-
-//class	ENGINE_API	CResourceManager;
-//class	ENGINE_API	CGammaControl;
-
+#include <DirectXMath.h>
 #include "pure.h"
-//#include "hw.h"
 #include "../xrcore/ftimer.h"
+#include "../xrCore/xrDelegate/xrDelegate.h"
 #include "stats.h"
-//#include "shader.h"
-//#include "R_Backend.h"
+#include "DirectXMathExternal.h"
 
 #define VIEWPORT_NEAR  0.05f
 
@@ -25,15 +20,8 @@
 #	include "../Include/editor/interfaces.hpp"
 #endif // #ifdef INGAME_EDITOR
 
-//Thread Id's
-extern DWORD gMainThreadId;
-extern DWORD gSecondaryThreadId;
-
-ENGINE_API bool IsMainThread();
-ENGINE_API bool IsSecondaryThread();
-
 //for window prop control
-extern u32 ps_vid_windowtype;
+ENGINE_API extern u32 ps_vid_windowtype;
 
 enum WindowPropStyle
 {
@@ -46,6 +34,8 @@ enum WindowPropStyle
 class engine_impl;
 
 #pragma pack(push,4)
+#pragma warning(push)
+#pragma warning(disable: 4366)
 
 class IRenderDevice
 {
@@ -81,16 +71,16 @@ public:
 	Fvector									vCameraTop;
 	Fvector									vCameraRight;
 
-	Fmatrix									mView;
-	Fmatrix									mProject;
-	Fmatrix									mFullTransform;
+	Matrix4x4						mView;
+	Matrix4x4						mProject;
+	Matrix4x4						mFullTransform;
 
 	// Copies of corresponding members. Used for synchronization.
-	Fvector									vCameraPosition_saved;
+	Fvector							vCameraPosition_saved;
 
-	Fmatrix									mView_saved;
-	Fmatrix									mProject_saved;
-	Fmatrix									mFullTransform_saved;
+	Matrix4x4						mView_saved;
+	Matrix4x4						mProject_saved;
+	Matrix4x4						mFullTransform_saved;
 
 	float									fFOV;
 	float									fASPECT;
@@ -158,8 +148,6 @@ private:
 	void									_Destroy	(BOOL	bKeepTextures);
 	void									_SetupStates();
 public:
-	LRESULT									MsgProc		(HWND,UINT,WPARAM,LPARAM);
-
 	// Get single WinAPI message and process it
 	void									ProcessSingleMessage();
 
@@ -171,22 +159,25 @@ public:
 	IRenderDeviceRender						*m_pRender;
 
 	BOOL									m_bNearer;
-	void									SetNearer	(BOOL enabled)
+	void									SetNearer(BOOL enabled)
 	{
-		if (enabled&&!m_bNearer){
-			m_bNearer						= TRUE;
-			mProject._43					-= EPS_L;
-		}else if (!enabled&&m_bNearer){
-			m_bNearer						= FALSE;
-			mProject._43					+= EPS_L;
+		if (enabled && !m_bNearer)
+		{
+			m_bNearer = TRUE;
+			mProject.Matrix.r[1].m128_f32[3] -= EPS_L;
 		}
-		m_pRender->SetCacheXform(mView, mProject);
+		else if (!enabled && m_bNearer)
+		{
+			m_bNearer = FALSE;
+			mProject.Matrix.r[1].m128_f32[3] += EPS_L;
+		}
+		m_pRender->SetCacheXform(CastToGSCMatrix(mView), CastToGSCMatrix(mProject));
 	}
 public:
 	// Registrators
-	CRegistrator	<pureFrame			>			seqFrameMT;
-	CRegistrator	<pureDeviceReset	>			seqDeviceReset;
-	xr_vector		<fastdelegate::FastDelegate0<> >	seqParallel;
+	CRegistrator	<pureFrame			>	seqFrameMT;
+	CRegistrator	<pureDeviceReset	>	seqDeviceReset;
+	xr_vector		<xrDelegate<void()>	>	seqParallel;
 	CSecondVPParams m_SecondViewport;	//--#SM+#-- +SecondVP+
 
 	// Dependent classes
@@ -197,16 +188,16 @@ public:
 	
 	CRenderDevice			()
 		:
-		m_pRender(0)
+		m_pRender(nullptr)
 #ifdef INGAME_EDITOR
-		,m_editor_module(0),
-		m_editor_initialize(0),
-		m_editor_finalize(0),
-		m_editor(0),
-		m_engine(0)
+		,m_editor_module(nullptr),
+		m_editor_initialize(nullptr),
+		m_editor_finalize(nullptr),
+		m_editor(nullptr),
+		m_engine(nullptr)
 #endif // #ifdef INGAME_EDITOR
 	{
-	    m_hWnd              = NULL;
+	    m_hWnd              = nullptr;
 		b_is_Active			= FALSE;
 		b_is_Ready			= FALSE;
 		Timer.Start			();
@@ -238,13 +229,17 @@ public:
 
 	// Creation & Destroying
 	void ConnectToRender();
-	void Create								(void);
-	void Run								(void);
-	void Destroy							(void);
+	void Create								(bool bIsEditor);
+	void Run								();
+
+	void BeginToWork();
+
+	void Destroy();
 	void Reset								(bool precache = true);
 
-	void Initialize							(void);
-	void ShutDown							(void);
+	void Initialize							();
+	HWND CreateXRayWindow (HWND parent = nullptr, int Width = 0, int Height = 0);
+	void ShutDown							();
 
     void UpdateWindowPropStyle              (WindowPropStyle PropStyle = (WindowPropStyle)ps_vid_windowtype);
 
@@ -264,19 +259,15 @@ public:
     WindowPropStyle GetCurrentWindowPropStyle() const { return (WindowPropStyle)ps_vid_windowtype; };
 
 	// Multi-threading
-	std::recursive_mutex	mt_csEnter;
-	std::recursive_mutex	mt_csLeave;
+	xrCriticalSection	mt_csEnter;
+	xrCriticalSection	mt_csLeave;
 	volatile BOOL		mt_bMustExit;
 
-	ICF		void			remove_from_seq_parallel	(const fastdelegate::FastDelegate0<> &delegate)
+	ICF		void			remove_from_seq_parallel(const xrDelegate<void()> &delegate)
 	{
-		xr_vector<fastdelegate::FastDelegate0<> >::iterator I = std::find(
-			seqParallel.begin(),
-			seqParallel.end(),
-			delegate
-		);
+		auto I = std::find(seqParallel.begin(), seqParallel.end(), delegate);
 		if (I != seqParallel.end())
-			seqParallel.erase	(I);
+			seqParallel.erase(I);
 	}
 
 	IC u32 frame_elapsed()
@@ -284,9 +275,9 @@ public:
 		return frame_timer.GetElapsed_ms();
 	}
 public:
-			void xr_stdcall		on_idle				();
+			void				on_idle				();
 			void				ResizeProc			(DWORD height, DWORD width);
-			bool xr_stdcall		on_message			(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT &result);
+			bool				on_message			(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT &result);
 
 private:
 			void					message_loop		();
@@ -302,8 +293,8 @@ private:
 			void				message_loop_editor	();
 
 private:
-	typedef editor::initialize_function_ptr			initialize_function_ptr;
-	typedef editor::finalize_function_ptr			finalize_function_ptr;
+	using initialize_function_ptr = editor::initialize_function_ptr;
+	using finalize_function_ptr = editor::finalize_function_ptr;
 
 private:
 	HMODULE						m_editor_module;
@@ -325,7 +316,7 @@ extern		ENGINE_API		CRenderDevice		Device;
 
 extern		ENGINE_API		bool				g_bBenchmark;
 
-using LOADING_EVENT = fastdelegate::FastDelegate0<bool>;
+using LOADING_EVENT = xrDelegate<bool()>;
 extern	ENGINE_API xr_list<LOADING_EVENT>		g_loading_events;
 
 class ENGINE_API CLoadScreenRenderer :public pureRender
@@ -340,3 +331,4 @@ public:
 	bool			b_need_user_input;
 };
 extern ENGINE_API CLoadScreenRenderer load_screen_renderer;
+#pragma warning(pop)

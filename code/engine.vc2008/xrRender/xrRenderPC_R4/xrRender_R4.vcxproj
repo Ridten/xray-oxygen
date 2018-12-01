@@ -87,7 +87,6 @@
       <ProgramDataBaseFileName>$(IntDir)</ProgramDataBaseFileName>
       <WarningLevel>Level4</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
@@ -107,6 +106,9 @@
       <IgnoreSpecificDefaultLibraries>
       </IgnoreSpecificDefaultLibraries>
     </Link>
+    <PreBuildEvent>
+      <Command>copy $(xrSDKBins)AnselSDK64.dll $(xrBinOut)</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -137,7 +139,6 @@
       <ProgramDataBaseFileName>$(IntDir)</ProgramDataBaseFileName>
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
@@ -159,6 +160,9 @@
       <ImportLibrary>$(xrLib)$(TargetName).lib</ImportLibrary>
       <IgnoreSpecificDefaultLibraries>luabind.beta7-devel.rc4.lib;</IgnoreSpecificDefaultLibraries>
     </Link>
+    <PreBuildEvent>
+      <Command>copy $(xrSDKBins)AnselSDK64.dll $(xrBinOut)</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_IA32|x64'">
     <ClCompile>
@@ -189,7 +193,6 @@
       <ProgramDataBaseFileName>$(IntDir)</ProgramDataBaseFileName>
       <WarningLevel>Level2</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
     </ClCompile>
@@ -212,6 +215,9 @@
       <ImportLibrary>$(xrLib)$(TargetName).lib</ImportLibrary>
       <IgnoreSpecificDefaultLibraries>luabind.beta7-devel.rc4.lib;</IgnoreSpecificDefaultLibraries>
     </Link>
+    <PreBuildEvent>
+      <Command>copy $(xrSDKBins)AnselSDK64.dll $(xrBinOut)</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\..\utils\common\NvMender2003\convert.h" />
@@ -219,9 +225,10 @@
     <ClInclude Include="..\..\utils\common\NvMender2003\NVMeshMender.h" />
     <ClInclude Include="..\..\utils\common\NvMender2003\remove_isolated_verts.h" />
     <ClInclude Include="..\xrRender\dxGlowManager.h" />
+    <ClInclude Include="..\xrRender\RenderLightGI.h" />
+    <ClInclude Include="..\xrRender\r_types.h" />
     <ClInclude Include="..\xrRender\ScreenshotManager.h" />
-    <ClInclude Include="blender_ssss_mrmnwar.h" />
-    <ClInclude Include="blender_ssss_ogse.h" />
+    <ClInclude Include="..\xrRender\xrRenderTarget.h" />
     <ClInclude Include="cl_intersect.h" />
     <ClInclude Include="..\xrRenderDX10\DXCommonTypes.h" />
     <ClInclude Include="r2_puddles.h" />
@@ -230,7 +237,6 @@
     <ClInclude Include="..\xrRender\xrRender_console.h" />
     <ClInclude Include="..\xrRender\PSLibrary.h" />
     <ClInclude Include="..\xrRender\QueryHelper.h" />
-    <ClInclude Include="r2_types.h" />
     <ClInclude Include="r4.h" />
     <ClInclude Include="r4_R_sun_support.h" />
     <ClInclude Include="..\xrRender\r__dsgraph_structure.h" />
@@ -247,14 +253,12 @@
     <ClInclude Include="..\xrRender\xrStripify.h" />
     <ClInclude Include="light.h" />
     <ClInclude Include="..\xrRender\Light_DB.h" />
-    <ClInclude Include="light_gi.h" />
     <ClInclude Include="..\xrRender\Light_Package.h" />
     <ClInclude Include="Light_Render_Direct.h" />
     <ClInclude Include="light_smapvis.h" />
     <ClInclude Include="..\xrRender\LightTrack.h" />
     <ClInclude Include="SMAP_Allocator.h" />
     <ClInclude Include="..\xrRender\WallmarksEngine.h" />
-    <ClInclude Include="blender_bloom_build.h" />
     <ClInclude Include="..\xrRender\Blender_BmmD.h" />
     <ClInclude Include="blender_combine.h" />
     <ClInclude Include="blender_deffer_aref.h" />
@@ -268,7 +272,6 @@
     <ClInclude Include="blender_light_point.h" />
     <ClInclude Include="blender_light_reflected.h" />
     <ClInclude Include="blender_light_spot.h" />
-    <ClInclude Include="blender_luminance.h" />
     <ClInclude Include="..\xrRender\Blender_Particle.h" />
     <ClInclude Include="blender_ssao.h" />
     <ClInclude Include="dx11MinMaxSMBlender.h" />
@@ -293,7 +296,6 @@
     <ClInclude Include="..\xrRender\r__sector.h" />
     <ClInclude Include="..\xrRender\HOM.h" />
     <ClInclude Include="..\xrRender\occRasterizer.h" />
-    <ClInclude Include="r4_rendertarget.h" />
     <ClInclude Include="..\xrRender\ColorMapManager.h" />
     <ClInclude Include="..\xrRender\HW.h" />
     <ClInclude Include="..\xrRender\HWCaps.h" />
@@ -408,13 +410,18 @@
   <ItemGroup>
     <ClCompile Include="..\xrRender\dxGlowManager.cpp" />
     <ClCompile Include="..\xrRender\Light_Render_Direct_ComputeXFS.cpp" />
+    <ClCompile Include="..\xrRender\RenderCalculate.cpp" />
+    <ClCompile Include="..\xrRender\RenderLightGI.cpp" />
+    <ClCompile Include="..\xrRender\RenderLights.cpp" />
+    <ClCompile Include="..\xrRender\RenderSun.cpp" />
     <ClCompile Include="..\xrRender\RenderTargetPhaseAA.cpp" />
+    <ClCompile Include="..\xrRender\RenderTargetPhaseCombine.cpp" />
     <ClCompile Include="..\xrRender\RenderTargetPhaseGamma.cpp" />
     <ClCompile Include="..\xrRender\RenderTargetPhaseRainDrops.cpp" />
     <ClCompile Include="..\xrRender\RenderTargetPhaseSSSS.cpp" />
+    <ClCompile Include="..\xrRender\RenderTargetPhaseVignette.cpp" />
     <ClCompile Include="..\xrRender\ScreenshotManager.cpp" />
-    <ClCompile Include="blender_ssss_mrmnwar.cpp" />
-    <ClCompile Include="blender_ssss_ogse.cpp" />
+    <ClCompile Include="AnselWrapper.cpp" />
     <ClCompile Include="r3_puddles.cpp" />
     <ClCompile Include="r4_rendertarget_phase_puddles.cpp" />
     <ClCompile Include="ScreenshotManagerDX11.cpp" />
@@ -428,9 +435,6 @@
     <ClCompile Include="..\xrRenderDX10\dx10Texture.cpp" />
     <ClCompile Include="..\xrRender\PSLibrary.cpp" />
     <ClCompile Include="r2_blenders.cpp" />
-    <ClCompile Include="r2_R_calculate.cpp" />
-    <ClCompile Include="r2_R_lights.cpp" />
-    <ClCompile Include="r2_R_sun.cpp" />
     <ClCompile Include="r2_sector_detect.cpp" />
     <ClCompile Include="r4.cpp" />
     <ClCompile Include="r4_loader.cpp" />
@@ -455,13 +459,11 @@
     <ClCompile Include="..\xrRender\xrStripify.cpp" />
     <ClCompile Include="..\xrRender\light.cpp" />
     <ClCompile Include="..\xrRender\Light_DB.cpp" />
-    <ClCompile Include="light_GI.cpp" />
     <ClCompile Include="..\xrRender\Light_Package.cpp" />
     <ClCompile Include="light_smapvis.cpp" />
     <ClCompile Include="light_vis.cpp" />
     <ClCompile Include="..\xrRender\LightTrack.cpp" />
     <ClCompile Include="..\xrRender\WallmarksEngine.cpp" />
-    <ClCompile Include="blender_bloom_build.cpp" />
     <ClCompile Include="..\xrRender\Blender_BmmD.cpp" />
     <ClCompile Include="blender_combine.cpp" />
     <ClCompile Include="blender_deffer_aref.cpp" />
@@ -475,7 +477,6 @@
     <ClCompile Include="blender_light_point.cpp" />
     <ClCompile Include="blender_light_reflected.cpp" />
     <ClCompile Include="blender_light_spot.cpp" />
-    <ClCompile Include="blender_luminance.cpp" />
     <ClCompile Include="..\xrRender\Blender_Particle.cpp" />
     <ClCompile Include="blender_ssao.cpp" />
     <ClCompile Include="dx11MinMaxSMBlender.cpp" />
@@ -517,7 +518,6 @@
     <ClCompile Include="r4_rendertarget_mark_msaa_edges.cpp" />
     <ClCompile Include="r4_rendertarget_phase_accumulator.cpp" />
     <ClCompile Include="r4_rendertarget_phase_bloom.cpp" />
-    <ClCompile Include="r4_rendertarget_phase_combine.cpp" />
     <ClCompile Include="r4_rendertarget_phase_luminance.cpp" />
     <ClCompile Include="r4_rendertarget_phase_occq.cpp" />
     <ClCompile Include="r4_rendertarget_phase_PP.cpp" />

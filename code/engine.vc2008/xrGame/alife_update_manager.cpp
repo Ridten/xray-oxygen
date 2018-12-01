@@ -30,7 +30,7 @@
 
 using namespace ALife;
 
-extern string_path g_last_saved_game;
+extern string_path ENGINE_API g_last_saved_game;
 
 class CSwitchPredicate {
 private:
@@ -74,15 +74,10 @@ CALifeUpdateManager::CALifeUpdateManager	(xrServer *server, LPCSTR section) :
 	m_first_time			= true;
 }
 
-CALifeUpdateManager::~CALifeUpdateManager	()
+CALifeUpdateManager::~CALifeUpdateManager()
 {
-	shedule_unregister		();
-	Device.remove_from_seq_parallel	(
-		fastdelegate::FastDelegate0<>(
-			this,
-			&CALifeUpdateManager::update
-		)
-	);
+	shedule_unregister();
+	Device.remove_from_seq_parallel(xrDelegate<void()>(BindDelegate(this, &CALifeUpdateManager::update)));
 }
 
 float CALifeUpdateManager::shedule_Scale	()

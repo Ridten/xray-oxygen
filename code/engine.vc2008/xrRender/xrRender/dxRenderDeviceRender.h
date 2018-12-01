@@ -23,7 +23,7 @@ public:
 	virtual void	Copy(IRenderDeviceRender &_in);
 
 	//	Gamma correction functions
-#if defined(USE_DX10) || defined(USE_DX11)
+#ifdef USE_DX11
 	virtual DXGI_GAMMA_CONTROL	GetGammaLUT() const;
 #else
 	virtual D3DGAMMARAMP		GetGammaLUT() const;
@@ -73,7 +73,7 @@ public:
 	virtual void	Clear();
 	virtual void	End();
 	virtual void	ClearTarget();
-	virtual void	SetCacheXform(Fmatrix &mView, Fmatrix &mProject);
+	virtual void	SetCacheXform(const Fmatrix &mView, const Fmatrix &mProject);
 	virtual void	OnAssetsChanged();
 	virtual void	ResizeWindowProc(WORD h, WORD w);
 

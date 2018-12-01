@@ -1698,10 +1698,6 @@ void PATurbulenceExecuteStream(LPVOID lpvParams)
 
 void PATurbulence::Execute(ParticleEffect *effect, const float dt, float& tm_max)
 {
-#ifdef _GPA_ENABLED
-	TAL_SCOPED_TASK_NAMED("PATurbulence::Execute()");
-#endif // _GPA_ENABLED
-
 	if (noise_start)
 	{
 		noise_start = 0;
@@ -1714,22 +1710,19 @@ void PATurbulence::Execute(ParticleEffect *effect, const float dt, float& tm_max
 	if (!p_cnt)
 		return;
 
-	u32 nWorkers = (u32)ttapi_GetWorkersCount();
-	//Is how it is in Shadow of Chernobyl and Clear Sky source and does seem to run better then * 20. Only 20% CPU usage.
-	if (p_cnt < nWorkers * 64)
-		nWorkers = 1;
+	size_t nWorkers = (p_cnt < 16) ? ttapi_GetWorkersCount() - 1 : 1;
 
-	TES_PARAMS* tesParams = (TES_PARAMS*)_alloca(sizeof(TES_PARAMS) * nWorkers);
+	TES_PARAMS* tesParams = new TES_PARAMS[nWorkers];
 
 	// Give ~1% more for the last worker
 	// to minimize wait in final spin
-	u32 nSlice = p_cnt / 128;
-	u32 nStep = ((p_cnt - nSlice) / nWorkers);
+	size_t nSlice = p_cnt / 32;
+	size_t nStep = ((p_cnt - nSlice) / nWorkers);
 
-	for (u32 i = 0; i < nWorkers; ++i)
+	for (size_t i = 0ul; i < nWorkers; ++i)
 	{
-		tesParams[i].p_from = i * nStep;
-		tesParams[i].p_to = (i == (nWorkers - 1)) ? p_cnt : (tesParams[i].p_from + nStep);
+		tesParams[i].p_from = u32(i * nStep);
+		tesParams[i].p_to = (i == (nWorkers - 1)) ? (u32)p_cnt : (tesParams[i].p_from + (u32)nStep);
 
 		tesParams[i].effect = effect;
 		tesParams[i].offset = offset;
@@ -1742,6 +1735,7 @@ void PATurbulence::Execute(ParticleEffect *effect, const float dt, float& tm_max
 		ttapi_AddTask(PATurbulenceExecuteStream, (LPVOID)&tesParams[i]);
 	}
 	ttapi_RunAllWorkers();
+	delete tesParams;
 }
 
 #else

@@ -1,11 +1,8 @@
 // Level_Bullet_Manager.h:  для обеспечения полета пули по траектории
 //							все пули и осколки передаются сюда
 //////////////////////////////////////////////////////////////////////
-
 #pragma once
-
-
-#include "weaponammo.h"
+#include "items/WeaponAmmo.h"
 #include "tracer.h"
 
 //коэфициенты и параметры патрона
@@ -26,7 +23,6 @@ struct SBullet
 			u16			allow_tracer	: 1	;
 			u16			allow_ricochet	: 1	;			//разрешить рикошет
 			u16			allow_sendhit	: 1	;			//statistics
-//.			u16			skipped_frame	: 1	;			//пропуск первой отрисовки
 			u16			aim_bullet		: 1 ;			//прицеленная пуля( вылетевшая первой после длительного молчания оружия (1-3 сек.))
 			u16			magnetic_beam	: 1 ;			//магнитный луч (нет отклонения после пробивания, не падает скорость после пробивания)
 		};
@@ -93,7 +89,7 @@ public:
 										float	maximum_distance,
 										const	CCartridge& cartridge,
 										float const air_resistance_factor,
-										bool	SendHit);
+										bool	SendHit = true);
 };
 
 class CLevel;
@@ -233,7 +229,7 @@ public:
 												ALife::EHitType e_hit_type, float maximum_distance, 
 												const CCartridge& cartridge,
 												float const air_resistance_factor,
-												bool SendHit,bool AimBullet=false);
+												bool SendHit = true, bool AimBullet=false);
 
 	void					CommitEvents		();	// @ the start of frame
 	void					CommitRenderSet		();	// @ the end of frame

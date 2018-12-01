@@ -1,5 +1,6 @@
-#include "stdafx.h"
+﻿#include "stdafx.h"
 #include "../../xrEngine/igame_persistent.h"
+#include "../../xrEngine/DirectXMathExternal.h"
 #include "../xrRender/FBasicVisual.h"
 #include "../../xrEngine/customhud.h"
 #include "../../xrEngine/xr_object.h"
@@ -12,20 +13,18 @@ IC	bool	pred_sp_sort	(ISpatial*	_1, ISpatial* _2)
 	float	d2		= _2->spatial.sphere.P.distance_to_sqr	(Device.vCameraPosition);
 	return	d1<d2	;
 }
-//Swartz27 to all: Switched from Deffered Lighting
-//to deffered shading for two reasons:
-//1) It's faster (proof is in the pudding)
-//2) It makes PBR easier to add
+//MatthewKush to all: I was completely wrong before
+//I shouldn't smoke so much cheeba
+//Current goal: deffered lighting > deffered shading > forward+ shading
 void CRender::render_main	(Fmatrix&	m_ViewProjection, bool _fportals)
 {
 	PIX_EVENT(render_main);
 	marker					++;
 
 	// Calculate sector(s) and their objects
-	if (pLastSector)		{
-		//!!!
+	if (pLastSector)	
+	{
 		//!!! BECAUSE OF PARALLEL HOM RENDERING TRY TO DELAY ACCESS TO HOM AS MUCH AS POSSIBLE
-		//!!!
 		{
 			// Traverse object database
 			g_SpatialSpace->q_frustum
@@ -150,13 +149,14 @@ void CRender::render_main	(Fmatrix&	m_ViewProjection, bool _fportals)
 				break;	// exit loop on frustums
 			}
 		}
-		if (g_pGameLevel && (phase==PHASE_NORMAL))	g_hud->Render_Last();		// HUD
 	}
 	else
 	{
-		set_Object									(nullptr);
-		if (g_pGameLevel && (phase==PHASE_NORMAL))	g_hud->Render_Last();		// HUD
+		set_Object(nullptr);
 	}
+	// Render HUD Mesh
+	if (g_pGameLevel && g_hud && (phase == PHASE_NORMAL))
+		g_hud->Render_Last();
 }
 
 void CRender::render_menu	()
@@ -165,7 +165,7 @@ void CRender::render_menu	()
 	//	Globals
 	RCache.set_CullMode				(CULL_CCW);
 	RCache.set_Stencil				(FALSE);
-	RCache.set_ColorWriteEnable		();
+	RCache.set_ColorWriteEnable();
 
 	// Main Render
 	{
@@ -239,14 +239,13 @@ void CRender::Render		()
 	RImplementation.o.distortion				= FALSE;		// disable distorion
 	Fcolor					sun_color			= ((light*)Lights.sun._get())->color;
 	BOOL					bSUN				= ps_r_flags.test(R_FLAG_SUN) && (u_diffuse2s(sun_color.r,sun_color.g,sun_color.b)>EPS) && !strstr(Core.Params, "-render_for_weak_systems");
-	if (o.sunstatic)		bSUN				= FALSE;
 
 	// HOM
-	ViewBase.CreateFromMatrix					(Device.mFullTransform, FRUSTUM_P_LRTB + FRUSTUM_P_FAR);
+	ViewBase.CreateFromMatrix					(CastToGSCMatrix(Device.mFullTransform), FRUSTUM_P_LRTB + FRUSTUM_P_FAR);
 	View										= nullptr;
 
 	Target->phase_scene_prepare					();
-    RCache.set_ZB( RImplementation.Target->rt_Depth->pZRT ); //depth prepass
+    //RCache.set_ZB( RImplementation.Target->rt_Depth->pZRT ); //NOT EVEN a depth prepass :P
 	//*******
 	// Sync point
 	Device.Statistic->RenderDUMP_Wait_S.Begin	();
@@ -274,7 +273,7 @@ void CRender::Render		()
 	if (bSUN)									set_Recorder	(&main_coarse_structure);
 	else										set_Recorder	(nullptr);
 	phase										= PHASE_NORMAL;
-	render_main									(Device.mFullTransform,true);
+	render_main									(CastToGSCMatrix(Device.mFullTransform),true);
 	set_Recorder								(nullptr);
 	r_pmask										(true,false);	// disable priority "1"
 	Device.Statistic->RenderCALC.End			();
@@ -405,8 +404,8 @@ void CRender::Render		()
 		Target->phase_accumulator			();
 
 		// Render emissive geometry, stencil - write 0x0 at pixel pos
-		RCache.set_xform_project			(Device.mProject); 
-		RCache.set_xform_view				(Device.mView);
+		RCache.set_xform_project			(CastToGSCMatrix(Device.mProject)); 
+		RCache.set_xform_view				(CastToGSCMatrix(Device.mView));
 
 		// Stencil - write 0x1 at pixel pos - 
       if( !RImplementation.o.dx10_msaa )
@@ -445,7 +444,7 @@ void CRender::render_forward				()
 		// level
 		r_pmask									(false,true);			// enable priority "1"
 		phase									= PHASE_NORMAL;
-		render_main								(Device.mFullTransform,false);//
+		render_main								(CastToGSCMatrix(Device.mFullTransform),false);//
 
 		//	Igor: we don't want to render old lods on next frame.
 		mapLOD.clear							();
@@ -456,7 +455,7 @@ void CRender::render_forward				()
 		if (Glows && ps_r_flags.is(R_FLAG_GLOW_USE))
 			Glows->Render();											// glows render
 
-		g_pGamePersistent->Environment().RenderLast();					// rain/thunder-bolts
+		Environment().RenderLast();					// rain/thunder-bolts
 	}
 
 	RImplementation.o.distortion				= FALSE;				// disable distorion

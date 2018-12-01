@@ -12,7 +12,7 @@
 #include "level_graph.h"
 #include "../xrEngine/customhud.h"
 #include "ai_space.h"
-#include "ui_base.h"
+#include "../xrUICore/ui_base.h"
 #include "game_graph.h"
 #include "game_sv_base.h"
 #include "custommonster.h"
@@ -24,7 +24,7 @@
 #include "alife_simulator.h"
 #include "alife_graph_registry.h"
 #include "alife_object_registry.h"
-#include "game_cl_base.h"
+
 #include "space_restriction_manager.h"
 #include "space_restriction.h"
 #include "space_restrictor.h"
@@ -155,7 +155,7 @@ void CLevelGraph::draw_nodes	()
 				Fvector		T;
 				Fvector4	S;
 				T.set		(PC); T.y+=0.3f;
-				Device.mFullTransform.transform	(S,T);
+				CastToGSCMatrix(Device.mFullTransform).transform	(S,T);
 				if (S.z < 0 || S.z < 0)												continue;
 				if (S.x < -1.f || S.x > 1.f || S.y<-1.f || S.x>1.f)					continue;
 				F->SetHeightI	(0.05f/_sqrt(_abs(S.w)));

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "xrGame.h"
+
 #pragma warning(disable:4995)
 #include "../xrEngine/stdafx.h"
 #include <DPlay/dplay8.h>
@@ -19,18 +21,22 @@
 #	define	THROW3					VERIFY3
 #endif
 #include "../xrEngine/gamefont.h"
+#include "../xrEngine/IGame_Level.h"
 #include "../xrEngine/bone.h"
 #include "../xrEngine/xr_object.h"
-#include "../xrEngine/igame_level.h"
 #include "../xrphysics/xrphysics.h"
 #include "smart_cast.h"
 #include "GamePersistent.h"
 
-#ifndef AI_COMPILER
-#include "stdafx.h"
-#endif
 // Forward luaState
 struct lua_State;
+
+#ifndef D3DCOLOR_XRGB
+	#define D3DCOLOR_ARGB(a,r,g,b) \
+		((D3DCOLOR)((((a)&0xff)<<24)|(((r)&0xff)<<16)|(((g)&0xff)<<8)|((b)&0xff)))
+	#define D3DCOLOR_RGBA(r,g,b,a) D3DCOLOR_ARGB(a,r,g,b)
+	#define D3DCOLOR_XRGB(r,g,b)   D3DCOLOR_ARGB(0xff,r,g,b)
+#endif
 
 /*
 extern "C" {

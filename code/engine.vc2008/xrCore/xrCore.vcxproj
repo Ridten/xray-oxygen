@@ -108,7 +108,6 @@
       <WarningLevel>Level4</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalOptions>/std:c++latest %(AdditionalOptions)</AdditionalOptions>
       <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
@@ -163,7 +162,6 @@ start GitParser\GitParser.exe</Command>
       </BrowseInformation>
       <WarningLevel>Level4</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalOptions>/std:c++latest %(AdditionalOptions)</AdditionalOptions>
       <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
@@ -277,7 +275,6 @@ start GitParser\GitParser.exe</Command>
       </BrowseInformation>
       <WarningLevel>Level4</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalOptions>/std:c++latest %(AdditionalOptions)</AdditionalOptions>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
@@ -320,8 +317,8 @@ start GitParser\GitParser.exe</Command>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Mixed|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release_IA32|x64'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="ThreadManager.cpp" />
     <ClCompile Include="threadpool\ttapi_oxygen.cpp" />
+    <ClCompile Include="thread_utils.cpp" />
     <ClCompile Include="XMLCore\Expression.cpp" />
     <ClCompile Include="xrAPI.cpp" />
     <ClCompile Include="XMLCore\tinyxml.cpp" />
@@ -338,7 +335,6 @@ start GitParser\GitParser.exe</Command>
     <ClCompile Include="string_concatenations.cpp" />
     <ClCompile Include="xr_trims.cpp" />
     <ClCompile Include="FileSystem.cpp" />
-    <ClCompile Include="FileSystem_borland.cpp" />
     <ClCompile Include="FS.cpp" />
     <ClCompile Include="LocatorAPI.cpp" />
     <ClCompile Include="LocatorAPI_defs.cpp" />
@@ -351,11 +347,6 @@ start GitParser\GitParser.exe</Command>
     <ClCompile Include="xrMemory.cpp" />
     <ClCompile Include="xrMemory_align.cpp" />
     <ClCompile Include="xrMemory_pso_Fill.cpp">
-      <AssemblerOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">AssemblyAndSourceCode</AssemblerOutput>
-      <AssemblerOutput Condition="'$(Configuration)|$(Platform)'=='Mixed|x64'">AssemblyAndSourceCode</AssemblerOutput>
-      <AssemblerOutput Condition="'$(Configuration)|$(Platform)'=='Release_IA32|x64'">AssemblyAndSourceCode</AssemblerOutput>
-    </ClCompile>
-    <ClCompile Include="xrMemory_pso_Fill32.cpp">
       <AssemblerOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">AssemblyAndSourceCode</AssemblerOutput>
       <AssemblerOutput Condition="'$(Configuration)|$(Platform)'=='Mixed|x64'">AssemblyAndSourceCode</AssemblerOutput>
       <AssemblerOutput Condition="'$(Configuration)|$(Platform)'=='Release_IA32|x64'">AssemblyAndSourceCode</AssemblerOutput>
@@ -374,7 +365,11 @@ start GitParser\GitParser.exe</Command>
     <ClInclude Include="DateTime.hpp" />
     <ClInclude Include="envelope.h" />
     <ClInclude Include="FTimer.h" />
+    <ClInclude Include="StringsUtils.h" />
     <ClInclude Include="XMLCore\Expression.h" />
+    <ClInclude Include="xrDelegate\xrDelegate.h" />
+    <ClInclude Include="xrDelegate\xrDelegateArguments.h" />
+    <ClInclude Include="xrDelegate\xrDelegateBinder.h" />
     <ClInclude Include="xrMemoryDebug.h" />
     <ClInclude Include="xrMemory_C.h" />
     <ClInclude Include="PostprocessAnimator.h" />
@@ -412,14 +407,12 @@ start GitParser\GitParser.exe</Command>
     <ClInclude Include="XMLCore\tinyxml.h" />
     <ClInclude Include="XMLCore\xrXMLParser.h" />
     <ClInclude Include="cpuid.h" />
-    <ClInclude Include="FixedMap.h" />
     <ClInclude Include="FixedSet.h" />
     <ClInclude Include="FixedVector.h" />
     <ClInclude Include="xrPool.h" />
     <ClInclude Include="_std_extensions.h" />
     <ClInclude Include="_stl_extensions.h" />
     <ClInclude Include="clsid.h" />
-    <ClInclude Include="fastdelegate.h" />
     <ClInclude Include="string_concatenations.h" />
     <ClInclude Include="string_concatenations_inline.h" />
     <ClInclude Include="xr_trims.h" />

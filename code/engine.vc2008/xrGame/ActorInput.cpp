@@ -1,7 +1,7 @@
 #include "stdafx.h"
 #include <dinput.h>
 #include "Actor.h"
-#include "Torch.h"
+#include "items/Torch.h"
 #include "trade.h"
 #include "../xrEngine/CameraBase.h"
 
@@ -15,15 +15,14 @@
 #include "UIGame.h"
 #include "inventory.h"
 #include "level.h"
-#include "game_cl_base.h"
 #include "..\xrEngine\xr_level_controller.h"
 #include "UsableScriptObject.h"
 #include "actorcondition.h"
 #include "actor_input_handler.h"
-#include "..\xrEngine\string_table.h"
-#include "UI/UIStatic.h"
-#include "UI/UIActorMenu.h"
-#include "UI/UIDragDropReferenceList.h"
+#include "../xrEngine/string_table.h"
+#include "../xrUICore/UIStatic.h"
+#include "ui/UIActorMenu.h"
+#include "ui/UIDragDropReferenceList.h"
 #include "CharacterPhysicsSupport.h"
 #include "InventoryBox.h"
 #include "player_hud.h"
@@ -32,7 +31,7 @@
 #include "CustomDetector.h"
 #include "clsid_game.h"
 #include "hudmanager.h"
-#include "Weapon.h"
+#include "items/Weapon.h"
 #include "ZoneCampfire.h"
 #include "../xrEngine/XR_IOConsole.h"
 #include "script_callback_ex.h"
@@ -294,7 +293,16 @@ void CActor::IR_OnKeyboardHold(int cmd)
 	{
 	case kUP:
 	case kDOWN: 
-		cam_Active()->Move( (cmd==kUP) ? kDOWN : kUP, 0, LookFactor);									break;
+		cam_Active()->Move( (cmd==kUP) ? kDOWN : kUP, 0, LookFactor);									
+		break;
+
+	case kCAM_ZOOM_IN:
+	case kCAM_ZOOM_OUT:
+	{
+		cam_Active()->Move(cmd);
+		break;
+	}
+
 	case kLEFT:
 	case kRIGHT:
 		if (eacFreeLook!=cam_active) cam_Active()->Move(cmd, 0, LookFactor);	break;
@@ -581,9 +589,9 @@ void CActor::set_input_external_handler(CActorInputHandler *handler)
 }
 
 
-#include "WeaponBinoculars.h"
-#include "WeaponBinocularsVision.h"
-#include "ActorHelmet.h"
+#include "items/WeaponBinoculars.h"
+#include "items/WeaponBinocularsVision.h"
+#include "items/Helmet.h"
 void CActor::SwitchNightVision()
 {
 	CWeapon* wpn1 = nullptr;
@@ -652,37 +660,40 @@ void CActor::SwitchTorchMode()
 
 void CActor::NoClipFly(int cmd)
 {
-	Fvector cur_pos;// = Position();
+
+	Fvector cur_pos, right, left;
 	cur_pos.set(0,0,0);
-	float scale = 1.0f;
+	float scale = 0.55f;
 	if(pInput->iGetAsyncKeyState(DIK_LSHIFT))
 		scale = 0.25f;
 	else if(pInput->iGetAsyncKeyState(DIK_X))
-		scale = 8.0f;
+		scale = 1.0f;
 	else if(pInput->iGetAsyncKeyState(DIK_LMENU))
-		scale = 12.0f;//LALT
+		scale = 2.0f;//LALT
 	else if(pInput->iGetAsyncKeyState(DIK_TAB))
-		scale = 20.0f;
+		scale = 5.0f;
 
 	switch(cmd)
 	{
 	case kJUMP:		
-		cur_pos.y += 0.1f;
+		cur_pos.y += 0.12f;
 		break;
 	case kCROUCH:	
-		cur_pos.y -= 0.1f;
+		cur_pos.y -= 0.12f;
 		break;
 	case kFWD:	
-		cur_pos.z += 0.1f;
+		cur_pos.mad(cam_Active()->vDirection, scale / 2.0f);
 		break;
 	case kBACK:
-		cur_pos.z -= 0.1f;
+		cur_pos.mad(cam_Active()->vDirection, -scale / 2.0f);
 		break;
 	case kL_STRAFE:
-		cur_pos.x -= 0.1f;
+		left.crossproduct(cam_Active()->vNormal, cam_Active()->vDirection);
+		cur_pos.mad(left, -scale / 2.0f);
 		break;
 	case kR_STRAFE:
-		cur_pos.x += 0.1f;
+		right.crossproduct(cam_Active()->vNormal, cam_Active()->vDirection);
+		cur_pos.mad(right, scale / 2.0f);
 		break;
 	case kCAM_1:	
 		cam_Set(eacFirstEye);				
@@ -715,9 +726,7 @@ void CActor::NoClipFly(int cmd)
 		break;
 	}
 	cur_pos.mul(scale);
-	Fmatrix	mOrient;
-	mOrient.rotateY(-(cam_Active()->GetWorldYaw()));
-	mOrient.transform_dir(cur_pos);
 	Position().add(cur_pos);
+	XFORM().translate_add(cur_pos);
 	character_physics_support()->movement()->SetPosition(Position());
 }

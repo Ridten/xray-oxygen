@@ -2,25 +2,24 @@
 #include "Actor.h"
 #include "ActorAnimation.h"
 #include "actor_anim_defs.h"
-#include "weapon.h"
+#include "items/weapon.h"
 #include "inventory.h"
 #include "missile.h"
 #include "level.h"
 #ifdef DEBUG
 #include "PHDebug.h"
-#include "ui_base.h"
+#include "../xrUICore/ui_base.h"
 #endif
 #include "hit.h"
 #include "PHDestroyable.h"
 #include "Car.h"
 #include "../Include/xrRender/Kinematics.h"
 #include "ai_object_location.h"
-#include "game_cl_base.h"
 #include "../xrEngine/motion.h"
-#include "artefact.h"
+#include "items/artefact.h"
 #include "IKLimbsController.h"
 #include "player_hud.h"
-#include "WeaponKnife.h"
+#include "items/WeaponKnife.h"
 
 static const float y_spin0_factor		= 0.0f;
 static const float y_spin1_factor		= 0.4f;
@@ -618,15 +617,15 @@ void CActor::g_SetAnimation( u32 mstate_rl )
 #ifdef DEBUG
 	if(bDebug && g_ShowAnimationInfo)
 	{
-		UI().Font().pFontStat->OutSetI	(0,0);
-		UI().Font().pFontStat->OutNext("[%s]",mov_state[moving_idx]);
+		UI().Font().GetFont("stat_font")->OutSetI	(0,0);
+		UI().Font().GetFont("stat_font")->OutNext("[%s]",mov_state[moving_idx]);
 		IKinematicsAnimated* KA = smart_cast<IKinematicsAnimated*>(Visual());
 		if(M_torso)
-			UI().Font().pFontStat->OutNext("torso [%s]",KA->LL_MotionDefName_dbg(M_torso).first);
+			UI().Font().GetFont("stat_font")->OutNext("torso [%s]",KA->LL_MotionDefName_dbg(M_torso).first);
 		if(M_head)
-			UI().Font().pFontStat->OutNext("head [%s]",KA->LL_MotionDefName_dbg(M_head).first);
+			UI().Font().GetFont("stat_font")->OutNext("head [%s]",KA->LL_MotionDefName_dbg(M_head).first);
 		if(M_legs)
-			UI().Font().pFontStat->OutNext("legs [%s]",KA->LL_MotionDefName_dbg(M_legs).first);
+			UI().Font().GetFont("stat_font")->OutNext("legs [%s]",KA->LL_MotionDefName_dbg(M_legs).first);
 	}
 #endif
 
@@ -647,7 +646,7 @@ void CActor::g_SetAnimation( u32 mstate_rl )
 		if (mstate_rl&mcLLookout)	xr_strcat(buf,"LLookout ");
 		if (mstate_rl&mcRLookout)	xr_strcat(buf,"RLookout ");
 		if (m_bJumpKeyPressed)		xr_strcat(buf,"+Jumping ");
-		UI().Font().pFontStat->OutNext	("MSTATE:     [%s]",buf);
+		UI().Font().GetFont("stat_font")->OutNext	("MSTATE:     [%s]",buf);
 /*
 		switch (m_PhysicMovementControl->Environment())
 		{

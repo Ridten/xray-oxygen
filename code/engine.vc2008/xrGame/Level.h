@@ -12,7 +12,7 @@
 #include "Level_network_map_sync.h"
 
 class	CParticlesObject;
-class	game_cl_GameState;
+class	game_GameState;
 class	NET_Queue_Event;
 class	CSE_Abstract;
 class	CSpaceRestrictionManager;
@@ -91,7 +91,7 @@ public:
 	using POVec = xr_vector<CParticlesObject*>;
 	POVec						m_StaticParticles;
 
-	game_cl_GameState			*game;
+	game_GameState*				game;
 	BOOL						game_configured;
 	NET_Queue_Event				*game_events;
 	xr_deque<CSE_Abstract*>		game_spawn_queue;
@@ -108,6 +108,7 @@ private:
 	// preload sounds registry
     using SoundRegistryMap = xr_map<shared_str, ref_sound>;
 	SoundRegistryMap			sound_registry;
+	xrCriticalSection EventProcesserLock;
 
 public:
 	void						PrefetchSound (LPCSTR name);
@@ -122,16 +123,16 @@ protected:
 	LevelMapSyncData			map_data;
 	bool						synchronize_client		();
 
-	bool	xr_stdcall			net_start1				();
-	bool	xr_stdcall			net_start2				();
-	bool	xr_stdcall			net_start4				();
-	bool	xr_stdcall			net_start6				();
+	bool				net_start1				();
+	bool				net_start2				();
+	bool				net_start4				();
+	bool				net_start6				();
 
-	bool	xr_stdcall			net_start_client1				();
-	bool	xr_stdcall			net_start_client3				();
-	bool	xr_stdcall			net_start_client4				();
-	bool	xr_stdcall			net_start_client5				();
-	bool	xr_stdcall			net_start_client6				();
+	bool				net_start_client1				();
+	bool				net_start_client3				();
+	bool				net_start_client4				();
+	bool				net_start_client5				();
+	bool				net_start_client6				();
 public:
 
 	// sounds
@@ -201,8 +202,8 @@ public:
 			shared_str			version					() const { return map_data.m_map_version; } //this method can be used ONLY from CCC_ChangeGameType
 	
 	//возвращает время в милисекундах относительно начала игры
-	ALife::_TIME_ID		GetStartGameTime		();
-	ALife::_TIME_ID		GetGameTime				();
+	virtual u64			GetStartGameTime		();
+	virtual u64			GetGameTime				();
 	//возвращает время для энвайронмента в милисекундах относительно начала игры
 	ALife::_TIME_ID		GetEnvironmentGameTime	();
 	//игровое время в отформатированном виде
@@ -247,7 +248,7 @@ add_to_type_list(CLevel)
 #define script_type_list save_type_list(CLevel)
 
 IC CLevel&				Level()		{ return *((CLevel*) g_pGameLevel);			}
-IC game_cl_GameState&	Game()		{ return *Level().game;					}
+IC game_GameState&		Game()		{ return *Level().game;					}
 	u32					GameID();
 
 

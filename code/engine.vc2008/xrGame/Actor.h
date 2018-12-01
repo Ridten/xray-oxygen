@@ -1,4 +1,5 @@
 #pragma once
+#include "../xrEngine/IGame_Actor.h"
 #include "../xrEngine/feel_touch.h"
 #include "../xrEngine/feel_sound.h"
 #include "../xrEngine/iinputreceiver.h"
@@ -12,7 +13,7 @@
 #include "InventoryOwner.h"
 #include "../xrEngine/StatGraph.h"
 #include "PhraseDialogManager.h"
-#include "ui_defs.h"
+#include "../xrUICore/ui_defs.h"
 
 #include "step_manager.h"
 #include "../xrScripts/export/script_export_space.h"
@@ -58,7 +59,8 @@ class CActorMemory;
 
 class CLocationManager;
 
-class	CActor: 
+class GAME_API CActor: 
+	public CIActor,
 	public CEntityAlive, 
 	public IInputReceiver,
 	public Feel::Touch,
@@ -77,12 +79,13 @@ private:
 public:
 	HANDLE								MtSecondUpdaterEventStart;
 	HANDLE								MtSecondUpdaterEventEnd;
-	std::recursive_mutex				MtFeelTochMutex;
+	xrCriticalSection					MtFeelTochMutex;
 public:
 										CActor				();
 	virtual								~CActor				();
 
 	virtual BOOL						AlwaysTheCrow				()						{ return TRUE; }
+	virtual BOOL						g_Alive						() const				{ return inherited::g_Alive(); }
 
 	virtual CAttachmentOwner*			cast_attachment_owner		()						{return this;}
 	virtual CInventoryOwner*			cast_inventory_owner		()						{return this;}
@@ -273,9 +276,6 @@ public:
 	MotionID				m_current_torso;
 	MotionID				m_current_head;
 
-    //режим подбирания предметов
-    bool					m_bPickupMode;
-
 	// callback на анимации модели актера
 	void					SetCallbacks		();
 	void					ResetCallbacks		();
@@ -301,10 +301,7 @@ public:
 	
 public:
 	CActorCameraManager&	Cameras				() 	{VERIFY(m_pActorEffector); return *m_pActorEffector;}
-	IC CCameraBase*			cam_Active			()	{return cameras[cam_active];}
-	IC CCameraBase*			cam_FirstEye		()	{return cameras[eacFirstEye];}
-    IC EActorCameras active_cam() {return cam_active;} //KD: need to know which cam active outside actor methods
-	virtual	void			cam_Set(EActorCameras style); //Alundaio: made public
+
 protected:
 	void					cam_Update				(float dt, float fFOV);
 	void					cam_Lookout				( const Fmatrix &xform, float camera_height );
@@ -314,8 +311,6 @@ protected:
 	float					currentFOV				();
 
 	// Cameras
-	CCameraBase*			cameras[eacMaxCam];
-	EActorCameras			cam_active;
 	float					fPrevCamPos;
 	float					current_ik_cam_shift;
 	Fvector					vPrevCamDir;
@@ -393,11 +388,6 @@ public:
 
 	bool					is_jump					();
 	u32						MovingState				() const {return mstate_real;}
-
-public:
-	u32						mstate_wishful;
-	u32						mstate_old;
-	u32						mstate_real;
 	
 protected:
 	BOOL					m_bJumpKeyPressed;
@@ -486,7 +476,7 @@ public:
 	virtual void						net_Destroy			();
 	virtual BOOL						net_Relevant		(); // relevant for export to server
 	virtual	void						net_Relcase			( CObject* O );					//
-	virtual void xr_stdcall				on_requested_spawn  (CObject *object);
+	virtual void 				on_requested_spawn  (CObject *object);
 
 	//object serialization
 	virtual void						save				(NET_Packet &output_packet);
@@ -681,6 +671,5 @@ extern bool		isActorAccelerated			(u32 mstate, bool ZoomMode);
 
 IC	CActorCondition	&CActor::conditions	() const{ VERIFY(m_entity_condition); return(*m_entity_condition);}
 
-extern CActor*		g_actor;
 CActor*				Actor		();
 extern const float	s_fFallTime;

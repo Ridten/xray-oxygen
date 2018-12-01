@@ -4,7 +4,7 @@
 #include "Level.h"
 #include "hudmanager.h"
 #include "net_queue.h"
-#include "game_cl_base.h"
+
 #include "GameTaskManager.h"
 #include "Level_Bullet_Manager.h"
 #include "script_process.h"
@@ -19,7 +19,7 @@
 #include "map_manager.h"
 #include "level_sounds.h"
 #include "trade_parameters.h"
-#include "MainMenu.h"
+#include "../xrUICore/MainMenu.h"
 #include "player_hud.h"
 #include "UI/UIGameTutorial.h"
 #include "CustomDetector.h"
@@ -28,6 +28,10 @@
 #include "debug_renderer.h"
 #include "physicobject.h"
 #include "..\xrEngine\string_table.h"
+#include "ai_space.h"
+#include "alife_simulator.h"
+#include "alife_time_manager.h"
+#include "../xrEngine/IGame_AnselSDK.h"
 
 #ifdef DEBUG
 #	include "ai_debug.h"
@@ -94,39 +98,31 @@ void CLevel::mtLevelScriptUpdater(void* pCLevel)
 		Fvector temp_vector;
 		pLevel->m_feel_deny.feel_touch_update(temp_vector, 0.f);
 
-		// commit events from bullet manager from prev-frame
-		pLevel->BulletManager().CommitEvents();
-
 		// Call level script
 		CScriptProcess * levelScript = ai().script_engine().script_process(ScriptEngine::eScriptProcessorLevel);
 		if (levelScript) levelScript->update();
-
-		pLevel->BulletManager().CommitRenderSet();
 
 		SetEvent(pLevel->m_mtScriptUpdaterEventEnd);
 	}
 }
 
-CLevel::CLevel() :IPureClient(Device.GetTimerGlobal())
+CLevel::CLevel() :IPureClient(Device.GetTimerGlobal()), Server(nullptr)
 {
 	g_bDebugEvents = strstr(Core.Params, "-debug_ge") ? TRUE : FALSE;
 
-	Server = nullptr;
+	game			= new game_GameState();
+	game_events		= new NET_Queue_Event();
+	spawn_events	= new NET_Queue_Event();
 
-	game = nullptr;
-	game_events = xr_new<NET_Queue_Event>();
-
-	spawn_events = xr_new<NET_Queue_Event>();
 	game_configured = FALSE;
 	m_connect_server_err = xrServer::ErrNoError;
 
 	eEnvironment = Engine.Event.Handler_Attach("LEVEL:Environment", this);
 	eEntitySpawn = Engine.Event.Handler_Attach("LEVEL:spawn", this);
 
-	m_pBulletManager = xr_new<CBulletManager>();
-
-	m_map_manager = xr_new<CMapManager>();
-	m_game_task_manager = xr_new<CGameTaskManager>();
+	m_pBulletManager	= new CBulletManager();
+	m_map_manager		= new CMapManager();
+	m_game_task_manager = new CGameTaskManager();
 
 	//----------------------------------------------------
 	m_seniority_hierarchy_holder = xr_new<CSeniorityHierarchyHolder>();
@@ -162,8 +158,6 @@ CLevel::CLevel() :IPureClient(Device.GetTimerGlobal())
 
 	thread_spawn(mtLevelScriptUpdater, "X-Ray: Level Script Update", 0, this);
 }
-
-extern CAI_Space *g_ai_space;
 
 CLevel::~CLevel()
 {
@@ -210,9 +204,7 @@ CLevel::~CLevel()
 
 	ai().script_engine().remove_script_process(ScriptEngine::eScriptProcessorLevel);
 
-	xr_delete(game);
 	xr_delete(game_events);
-
 
 	//by Dandy
 	//destroy bullet manager
@@ -315,12 +307,10 @@ void CLevel::cl_Process_Event(u16 dest, u16 type, NET_Packet& P)
 	}
 };
 
-static std::recursive_mutex MutexGameEventsLock;
-
 void CLevel::ProcessGameEvents()
 {
 	// Threadsafe for ProcessGameEvents
-	std::lock_guard<std::recursive_mutex> guard(MutexGameEventsLock);
+	xrCriticalSectionGuard EventProcessGuard(EventProcesserLock);
 
 	// Game events
 	NET_Packet			P;
@@ -418,6 +408,8 @@ void CLevel::OnFrame()
 	ResetEvent(m_mtScriptUpdaterEventEnd);
 	SetEvent(m_mtScriptUpdaterEventStart);
 
+	// commit events from bullet manager from prev-frame
+	BulletManager().CommitEvents();
 	ClientReceive();
 
 	// Update game events
@@ -426,10 +418,13 @@ void CLevel::OnFrame()
 	DBG_RenderUpdate();
 #endif // #ifdef DEBUG
 
-	m_map_manager->Update();
+	if (!pGameAnsel->isActive)
+	{
+		m_map_manager->Update();
 
-	if (Device.dwPrecacheFrame == 0 && Device.dwFrame % 2)
-		GameTaskManager().UpdateTasks();
+		if (Device.dwPrecacheFrame == 0 && Device.dwFrame % 2)
+			GameTaskManager().UpdateTasks();
+	}
 
 	// Inherited update
 	inherited::OnFrame();
@@ -441,13 +436,14 @@ void CLevel::OnFrame()
 		if (pStatGraphR)
 			xr_delete(pStatGraphR);
 	}
-	g_pGamePersistent->Environment().m_paused = m_bEnvPaused;
+	Environment().m_paused = m_bEnvPaused;
 #endif
-	g_pGamePersistent->Environment().SetGameTime(GetEnvironmentGameDayTimeSec(), game->GetEnvironmentGameTimeFactor());
+	Environment().SetGameTime(GetEnvironmentGameDayTimeSec(), game->GetEnvironmentGameTimeFactor());
 
 
 	m_ph_commander->update();
 	m_ph_commander_scripts->update();
+	BulletManager().CommitRenderSet();
 
 	// update static sounds
 	Device.seqParallel.emplace_back(m_level_sound_manager, &CLevelSoundManager::Update);
@@ -497,13 +493,20 @@ extern void draw_wnds_rects();
 void CLevel::OnRender()
 {
 	::Render->BeforeWorldRender();
-	inherited::OnRender();
+	
+	// There is an exception while loading the level.
+	try
+	{
+		inherited::OnRender();
+	}
+	catch (...)
+	{
+		R_ASSERT(game && game->Type() == eGameIDNoGame);
+	}
+	 
+	if(!pGameAnsel->isActive)
+		HUD().RenderUI();
 
-	if (!game)
-		return;
-
-	HUD().RenderUI();
-	Game().OnRender();
 	BulletManager().Render();
 	::Render->AfterWorldRender();
 
@@ -565,13 +568,13 @@ void CLevel::OnRender()
 		ObjectSpace.dbgRender();
 
 		//---------------------------------------------------------------------
-		UI().Font().pFontStat->OutSet(170, 630);
-		UI().Font().pFontStat->SetHeight(16.0f);
-		UI().Font().pFontStat->SetColor(0xffff0000);
+		UI().Font().GetFont("stat_font")->OutSet(170, 630);
+		UI().Font().GetFont("stat_font")->SetHeight(16.0f);
+		UI().Font().GetFont("stat_font")->SetColor(0xffff0000);
 
-		UI().Font().pFontStat->OutNext("Server Objects:      [%d]", Objects.o_count());
+		UI().Font().GetFont("stat_font")->OutNext("Server Objects:      [%d]", Objects.o_count());
 
-		UI().Font().pFontStat->SetHeight(8.0f);
+		UI().Font().GetFont("stat_font")->SetHeight(8.0f);
 
 		//---------------------------------------------------------------------
 		DBG().draw_object_info();
@@ -620,17 +623,17 @@ void CLevel::OnEvent(EVENT E, u64 P1, u64 /**P2/**/)
 
 ALife::_TIME_ID CLevel::GetStartGameTime()
 {
-	return(game->GetStartGameTime());
+	return(ai().alife().time_manager().start_game_time());
 }
 
 ALife::_TIME_ID CLevel::GetGameTime()
 {
-	return(game->GetGameTime());
+	return(ai().alife().time_manager().game_time());
 }
 
 ALife::_TIME_ID CLevel::GetEnvironmentGameTime()
 {
-	return(game->GetEnvironmentGameTime());
+	return(ai().alife().time_manager().game_time());
 }
 
 u8 CLevel::GetDayTime()
@@ -662,15 +665,14 @@ void CLevel::GetGameDateTime(u32& year, u32& month, u32& day, u32& hours, u32& m
 	split_time(GetGameTime(), year, month, day, hours, mins, secs, milisecs);
 }
 
-
 float CLevel::GetGameTimeFactor()
 {
-	return			(game->GetGameTimeFactor());
+	return(ai().alife().time_manager().time_factor());
 }
 
 void CLevel::SetGameTimeFactor(const float fTimeFactor)
 {
-	game->SetGameTimeFactor(fTimeFactor);
+	Server->game->SetGameTimeFactor(fTimeFactor);
 }
 
 void CLevel::SetGameTimeFactor(ALife::_TIME_ID GameTime, const float fTimeFactor)
@@ -694,7 +696,7 @@ void CLevel::ResetLevel()
 
 u32	GameID()
 {
-	return Game().Type();
+	return EGameIDs::eGameIDSingle;
 }
 
 // -------------------------------------------------------------------------------------------------

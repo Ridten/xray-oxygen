@@ -1,6 +1,6 @@
 #pragma once
 
-enum{
+enum {
 		AF_GODMODE				=(1<<0),
 		AF_NO_CLIP				=(1<<1),
 		AF_UNLIMITEDAMMO		=(1<<3),
@@ -26,8 +26,5 @@ enum{
 		AF_FP2ZOOM_FORCED		=(1<<24),
 };
 
-extern Flags32	psActorFlags;
+extern ENGINE_API Flags32	psActorFlags;
 extern BOOL		GodMode	();	
-
-extern int		psActorSleepTime;
-

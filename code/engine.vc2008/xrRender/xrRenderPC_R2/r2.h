@@ -2,11 +2,8 @@
 
 #include "../xrRender/r__dsgraph_structure.h"
 #include "../xrRender/r__occlusion.h"
-
 #include "../xrRender/PSLibrary.h"
-
-#include "r2_types.h"
-#include "r2_rendertarget.h"
+#include "../xrRender/xrRenderTarget.h"
 
 #include "../xrRender/hom.h"
 #include "../xrRender/detailmanager.h"
@@ -38,8 +35,6 @@ public:
 
 public:
 	struct		_options	{
-		u32		bug					: 1;
-		
 		u32		ssao_blur_on		: 1;
 		u32		ssao_opt_data		: 1;
 		u32		ssao_half_data		: 1;
@@ -67,7 +62,6 @@ public:
 		u32		distortion_enabled	: 1;
 
 		u32		sunfilter			: 1;
-		u32		sunstatic			: 1;
 		u32		sjitter				: 1;
 		u32		noshadows			: 1;
 		u32		Tshadows			: 1;						// transluent shadows
@@ -213,16 +207,14 @@ public:
 								 o_hemi_cube[CROS_impl::CUBE_FACE_NEG_Y],
 								 o_hemi_cube[CROS_impl::CUBE_FACE_NEG_Z]);
 	}
+
 	inline bool is_sun()
 	{
-		if (o.sunstatic) return false;
 		Fcolor sun_color = ((light*)Lights.sun._get())->color;
 		return (ps_r_flags.test(R_FLAG_SUN) && (u_diffuse2s(sun_color.r,sun_color.g,sun_color.b)>EPS));
 	}
-public:
-	// feature level
-	virtual bool					is_sun_static			()	{ return o.sunstatic;}
 
+public:
 	// Loading / Unloading
 	virtual void					create						();
 	virtual void					destroy						();

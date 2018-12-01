@@ -13,7 +13,6 @@
 #include "script_game_object.h"
 #include "xrserver_objects_alife.h"
 #include "xrServer_Objects_ALife_Items.h"
-#include "game_cl_base.h"
 #include "object_factory.h"
 #include "../Include/xrRender/Kinematics.h"
 #include "game_graph.h"
@@ -574,7 +573,7 @@ void CGameObject::u_EventSend(NET_Packet& P)
 	Level().Send(P);
 }
 
-#include "bolt.h"
+#include "items/bolt.h"
 void CGameObject::OnH_B_Chield()
 {
 	inherited::OnH_B_Chield();
@@ -817,22 +816,16 @@ void CGameObject::create_anim_mov_ctrl	( CBlend *b, Fmatrix *start_pose, bool lo
 		if( m_anim_mov_ctrl )
 			destroy_anim_mov_ctrl();
 
-		VERIFY2			(
-			start_pose,
-			make_string(
+		VERIFY_FORMAT (start_pose,
 				"start pose hasn't been specified for animation [%s][%s]",
 				smart_cast<IKinematicsAnimated&>(*Visual()).LL_MotionDefName_dbg(b->motionID).first,
 				smart_cast<IKinematicsAnimated&>(*Visual()).LL_MotionDefName_dbg(b->motionID).second
-			)
 		);
 
-		VERIFY2			(
-			!animation_movement(),
-			make_string(
+		VERIFY_FORMAT (!animation_movement(),
 				"start pose hasn't been specified for animation [%s][%s]",
 				smart_cast<IKinematicsAnimated&>(*Visual()).LL_MotionDefName_dbg(b->motionID).first,
 				smart_cast<IKinematicsAnimated&>(*Visual()).LL_MotionDefName_dbg(b->motionID).second
-			)
 		);
 		
 		VERIFY			(Visual());

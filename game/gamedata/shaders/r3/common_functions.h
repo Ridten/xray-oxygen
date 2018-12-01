@@ -87,7 +87,11 @@ float3	unpack_D3DCOLOR( float3 c ) { return c.bgr; }
 
 float3   p_hemi( float2 tc )
 {
+#ifdef SM_2_0
+	float4	t_lmh = tex2D(s_hemi, tc);
+#else
 	float4	t_lmh = s_hemi.Sample( smp_rtlinear, tc);
+#endif
 	return	t_lmh.a;
 }
 
@@ -216,19 +220,17 @@ gbuffer_data gbuffer_load_data( float2 tc : TEXCOORD, float2 pos2d, int iSample 
 	gbd.N = float3(0,0,0);
 
 #ifndef USE_MSAA
+#ifdef SM_2_0
+	float4 P	= tex2D(s_position, int3(pos2d, 0));
+#else
 	float4 P	= s_position.Load( int3( pos2d, 0 ) );
+#endif
 #else
 	float4 P	= s_position.Load( int3( pos2d, 0 ), iSample );
 #endif
 
 	// 3d view space pos reconstruction math
-	// center of the plane (0,0) or (0.5,0.5) at distance 1 is eyepoint(0,0,0) + lookat (assuming |lookat| ==1
-	// left/right = (0,0,1) -/+ tan(fHorzFOV/2) * (1,0,0 ) 
-	// top/bottom = (0,0,1) +/- tan(fVertFOV/2) * (0,1,0 )
-	// lefttop		= ( -tan(fHorzFOV/2),  tan(fVertFOV/2), 1 )
-	// righttop		= (  tan(fHorzFOV/2),  tan(fVertFOV/2), 1 )
-	// leftbottom   = ( -tan(fHorzFOV/2), -tan(fVertFOV/2), 1 )
-	// rightbottom	= (  tan(fHorzFOV/2), -tan(fVertFOV/2), 1 )
+	// center of the plane (0,0) or (0.5,0.5) at distance 1 is eyepoint(0,0,0) + lookat (assuming |lookat| == 1)
 	gbd.P  = float3( P.z * ( pos2d * pos_decompression_params.zw - pos_decompression_params.xy ), P.z );
 
 	// reconstruct N
@@ -241,7 +243,11 @@ gbuffer_data gbuffer_load_data( float2 tc : TEXCOORD, float2 pos2d, int iSample 
    gbd.hemi = gbuf_unpack_hemi( P.w );
 
 #ifndef USE_MSAA
-   float4	C	= s_diffuse.Load( int3( pos2d, 0 ) );
+#ifdef SM_2_0
+   float4 C	= tex2D(s_diffuse, int3(pos2d, 0));
+#else
+   float4 C	= s_diffuse.Load( int3( pos2d, 0 ) );
+#endif
 #else
    float4	C	= s_diffuse.Load( int3( pos2d, 0 ), iSample );
 #endif
@@ -259,14 +265,14 @@ gbuffer_data gbuffer_load_data( float2 tc : TEXCOORD, float2 pos2d )
 
 gbuffer_data gbuffer_load_data_offset( float2 tc : TEXCOORD, float2 OffsetTC : TEXCOORD, float2 pos2d )
 {
-	float2  delta	  = ( ( OffsetTC - tc ) * pos_decompression_params2.xy );
+	float2  delta	  = ( ( OffsetTC - tc ) * screen_res.xy );
 
 	return gbuffer_load_data( OffsetTC, pos2d + delta, 0 );
 }
 
 gbuffer_data gbuffer_load_data_offset( float2 tc : TEXCOORD, float2 OffsetTC : TEXCOORD, float2 pos2d, uint iSample )
 {
-   float2  delta	  = ( ( OffsetTC - tc ) * pos_decompression_params2.xy );
+   float2  delta	  = ( ( OffsetTC - tc ) * screen_res.xy );
 
    return gbuffer_load_data( OffsetTC, pos2d + delta, iSample );
 }
@@ -277,27 +283,39 @@ gbuffer_data gbuffer_load_data( float2 tc : TEXCOORD, uint iSample )
 	gbuffer_data gbd;
 
 #ifndef USE_MSAA
-	float4 P	= s_position.Load( int3( tc * pos_decompression_params2.xy, 0 ) );
+#ifdef SM_2_0
+	float4 P	= tex2D(s_position, int3(tc * screen_res.xy, 0))
 #else
-   float4 P	= s_position.Load( int3( tc * pos_decompression_params2.xy, 0 ), iSample );
+	float4 P	= s_position.Load(int3(tc * screen_res.xy, 0));
+#endif
+#else
+   float4 P	= s_position.Load( int3( tc * screen_res.xy, 0 ), iSample );
 #endif
 
 	gbd.P		= P.xyz;
 	gbd.mtl		= P.w;
 
 #ifndef USE_MSAA
-	float4 N	= s_normal.Load( int3( tc * pos_decompression_params2.xy, 0 ) );
+#ifdef SM_2_0
+	float4 N	= tex2D(s_normal, int3(tc * screen_res.xy, 0))
 #else
-	float4 N	= s_normal.Load( int3( tc * pos_decompression_params2.xy, 0 ), iSample );
+	float4 N	= s_normal.Load(int3( tc * screen_res.xy, 0 ));
+#endif
+#else
+	float4 N	= s_normal.Load( int3( tc * screen_res.xy, 0 ), iSample );
 #endif
 
 	gbd.N		= N.xyz;
 	gbd.hemi	= N.w;
 
 #ifndef USE_MSAA
-	float4	C	= s_diffuse.Load( int3( tc * pos_decompression_params2.xy, 0 ) );
+#ifdef SM_2_0
+	float4 C	= tex2D(s_diffuse, int3(tc * screen_res.xy, 0))
 #else
-	float4	C	= s_diffuse.Load( int3( tc * pos_decompression_params2.xy, 0 ), iSample );
+	float4 C	= s_diffuse.Load( int3( tc * screen_res.xy, 0 ) );
+#endif
+#else
+	float4 C	= s_diffuse.Load( int3( tc * screen_res.xy, 0 ), iSample );
 #endif
 
 

@@ -1,12 +1,13 @@
-#include "stdafx.h"
+﻿#include "stdafx.h"
 #pragma hdrstop
-
 #include "xr_input.h"
 #include "IInputReceiver.h"
 #include "../include/editor/ide.hpp"
 #include "../FrayBuildConfig.hpp"
+#include "OffSetOfWrapper.inl"
+#include "IGame_AnselSDK.h"
 
-CInput *	pInput = NULL;
+CInput *	pInput = nullptr;
 IInputReceiver		dummyController;
 
 ENGINE_API float	psMouseSens = 1.f;
@@ -147,7 +148,7 @@ HRESULT CInput::CreateInputDevice(LPDIRECTINPUTDEVICE8* device, GUID guidDevice,
 	{
 		HRESULT	_hr = (*device)->SetCooperativeLevel(RDEVICE.m_hWnd, dwFlags);
 		if (FAILED(_hr) && (_hr == E_NOTIMPL)) Msg("! INPUT: Can't set coop level. Emulation???");
-		else R_CHK(_hr);
+		//else R_CHK(_hr);
 	}
 
 	// setup the buffer size for the keyboard data
@@ -543,11 +544,13 @@ void CInput::OnAppDeactivate(void)
 
 void CInput::OnFrame(void)
 {
-	RDEVICE.Statistic->Input.Begin();
 	dwCurTime = RDEVICE.TimerAsync_MMT();
-	if (pKeyboard)	KeyUpdate();
-	if (pMouse)		MouseUpdate();
-	RDEVICE.Statistic->Input.End();
+
+	if (Device.dwPrecacheFrame == 0 && !pGameAnsel->isActive)
+	{
+		KeyUpdate();
+		MouseUpdate();
+	}
 }
 
 IInputReceiver*	 CInput::CurrentIR()

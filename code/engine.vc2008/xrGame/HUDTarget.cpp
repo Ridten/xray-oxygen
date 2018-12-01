@@ -6,10 +6,10 @@
 #include "../xrEngine/CustomHUD.h"
 #include "Entity.h"
 #include "level.h"
-#include "game_cl_base.h"
+
 #include "../xrEngine/igame_persistent.h"
 
-#include "ui_base.h"
+#include "../xrUICore/ui_base.h"
 #include "InventoryOwner.h"
 #include "relation_registry.h"
 #include "character_info.h"
@@ -111,7 +111,7 @@ void CHUDTarget::CursorOnFrame ()
 	if(Level().CurrentEntity())
 	{
 		PP.RQ.O			= 0; 
-		PP.RQ.range		= g_pGamePersistent->Environment().CurrentEnv->far_plane*0.99f;
+		PP.RQ.range		= Environment().CurrentEnv->far_plane*0.99f;
 		PP.RQ.element		= -1;
 		
 		collide::ray_defs	RD(p1, dir, PP.RQ.range, CDB::OPT_CULL, collide::rqtBoth);
@@ -149,11 +149,11 @@ void CHUDTarget::Render()
 	Fvector				p2;
 	p2.mad				(p1,dir,PP.RQ.range);
 	Fvector4			pt;
-	Device.mFullTransform.transform(pt, p2);
+	CastToGSCMatrix(Device.mFullTransform).transform(pt, p2);
 	pt.y = -pt.y;
 	float				di_size = C_SIZE/powf(pt.w,.2f);
 
-	CGameFont* F		= UI().Font().pFontGraffiti19Russian;
+	CGameFont* F		= UI().Font().GetFont("ui_font_graffiti19_russian");
 	F->SetAligment		(CGameFont::alCenter);
 	F->OutSetI			(0.f,0.05f);
 

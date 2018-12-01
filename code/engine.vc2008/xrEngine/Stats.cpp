@@ -1,4 +1,4 @@
-#include "stdafx.h"
+﻿#include "stdafx.h"
 #include "GameFont.h"
 #pragma hdrstop
 
@@ -336,6 +336,8 @@ void CStats::Show()
 		    // Counting CPU load
             CPU::Info.getCPULoad(cpuLoad);
             cpuBefore = cpuLoad;
+
+			CPU::Info.MTCPULoad();
         }
 
         pFont->SetHeightI(0.018f);
@@ -359,6 +361,14 @@ void CStats::Show()
             pFont->SetColor(DebugTextColor::DTC_GREEN);
 		pFont->Out(10, 70, "CPU_LOAD: %0.0f", cpuLoad);							// CPU load
 		pFont->Out(10, 85, "MEM_USED: %0.0f", PhysMemoryUsedPercent);			// Total Phys. memory load (%)
+
+		// get MT Load
+		for (size_t i = 0; i < CPU::Info.m_dwNumberOfProcessors; i++)
+		{
+			float dwScale = 100 + (float)i * 15;
+			pFont->Out(10, dwScale, "CPU%d: %0.0f", i, CPU::Info.fUsage[i]);
+		}
+
         pFont->OnRender();
 	}
 	
@@ -369,9 +379,8 @@ void CStats::Show()
 #ifdef DEBUG
 	//////////////////////////////////////////////////////////////////////////
 	// Show errors
-	if (!g_bDisableRedText && errors.size())
+	if (!g_bDisableRedText && !errors.empty())
 	{
-		CGameFont&	F = *((CGameFont*)pFont);
 		F.SetColor	(color_rgba(255,16,16,191));
 		F.OutSet	(200,0);
 		F.SetHeightI	(f_base_size);

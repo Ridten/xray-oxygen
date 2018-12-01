@@ -1,9 +1,9 @@
 #include "stdafx.h"
 #include "inventory.h"
 #include "actor.h"
-#include "CustomOutfit.h"
+#include "items/CustomOutfit.h"
 #include "trade.h"
-#include "weaponmagazined.h"
+#include "items/WeaponMagazined.h"
 
 #include "ui/UIInventoryUtilities.h"
 #include "ui/UIActorMenu.h"
@@ -791,7 +791,7 @@ u32 CInventory::dwfGetSameItemCount(LPCSTR caSection, bool SearchAll)
 	return		(l_dwCount);
 }
 
-#include "Grenade.h"
+#include "items/Grenade.h"
 u32 CInventory::dwfGetGrenadeCount(LPCSTR caSection, bool SearchAll)
 {
 	u32 l_dwCount = 0;
@@ -1164,15 +1164,15 @@ void CInventory::BlockSlot(u16 slot_id)
 	
 	++m_blocked_slots[slot_id];
 	
-	VERIFY2(m_blocked_slots[slot_id] < 5,
-		make_string("blocked slot [%d] overflow").c_str());	
+	VERIFY_FORMAT(m_blocked_slots[slot_id] < 5,
+		"blocked slot [%d] overflow", slot_id);
 }
 
 void CInventory::UnblockSlot(u16 slot_id)
 {
 	VERIFY(slot_id <= LAST_SLOT);
-	VERIFY2(m_blocked_slots[slot_id] > 0,
-		make_string("blocked slot [%d] underflow").c_str());	
+	VERIFY_FORMAT(m_blocked_slots[slot_id] > 0,
+		"blocked slot [%d] underflow", slot_id);	
 	
 	--m_blocked_slots[slot_id];	
 }

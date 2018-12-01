@@ -1,4 +1,4 @@
-// CDemoPlay.cpp: implementation of the CDemoPlay class.
+﻿// CDemoPlay.cpp: implementation of the CDemoPlay class.
 //
 //////////////////////////////////////////////////////////////////////
 
@@ -24,8 +24,8 @@ CDemoPlay::CDemoPlay(const char *name, float ms, u32 cycles, float life_time) : 
 	fSpeed				= ms;
 	dwCyclesLeft		= cycles?cycles:1;
 
-	m_pMotion			= 0;
-	m_MParam			= 0;
+	m_pMotion			= nullptr;
+	m_MParam			= nullptr;
 	string_path			nm, fn;
 	xr_strcpy			(nm,sizeof(nm),name);	
 	LPSTR extp			=strext(nm);
@@ -229,51 +229,50 @@ BOOL CDemoPlay::ProcessCam(SCamEffectorInfo& info)
 			return		TRUE;
 		}
 
-		fStartTime		+=	Device.fTimeDelta;
-		
+		fStartTime += Device.fTimeDelta;
+
 		float	ip;
-		float	p		=	fStartTime/fSpeed;
-		float	t		=	modff(p, &ip);
-		int		frame	=	iFloor(ip);
-		VERIFY	(t>=0);
-		
-		if (frame>=m_count)
+		float	p = fStartTime / fSpeed;
+		float	t = modff(p, &ip);
+		int		frame = iFloor(ip);
+		VERIFY(t >= 0);
+
+		if (frame >= m_count)
 		{
-			dwCyclesLeft			--	;
-			if (0==dwCyclesLeft)	return FALSE;
-			fStartTime				= 0	;
-			// just continue
-			// stat_Stop			();
-			// stat_Start			();
+			dwCyclesLeft--;
+			if (0 == dwCyclesLeft)	return FALSE;
+			fStartTime = 0;
 		}
-		
-		int f1=frame; FIX(f1);
-		int f2=f1+1;  FIX(f2);
-		int f3=f2+1;  FIX(f3);
-		int f4=f3+1;  FIX(f4);
-		
-		Fmatrix *m1,*m2,*m3,*m4;
+
+		int f1 = frame;   FIX(f1);
+		int f2 = f1 + 1;  FIX(f2);
+		int f3 = f2 + 1;  FIX(f3);
+		int f4 = f3 + 1;  FIX(f4);
+
+		Fmatrix *m1, *m2, *m3, *m4;
 		Fvector v[4];
-		m1 = (Fmatrix *) &seq[f1];
-		m2 = (Fmatrix *) &seq[f2];
-		m3 = (Fmatrix *) &seq[f3];
-		m4 = (Fmatrix *) &seq[f4];
-		
-		for (int i=0; i<4; i++) {
+		m1 = (Fmatrix*)&seq[f1];
+		m2 = (Fmatrix*)&seq[f2];
+		m3 = (Fmatrix*)&seq[f3];
+		m4 = (Fmatrix*)&seq[f4];
+
+		for (u32 i = 0; i < 4u; i++)
+		{
 			v[0].x = m1->m[i][0]; v[0].y = m1->m[i][1];  v[0].z = m1->m[i][2];
 			v[1].x = m2->m[i][0]; v[1].y = m2->m[i][1];  v[1].z = m2->m[i][2];
 			v[2].x = m3->m[i][0]; v[2].y = m3->m[i][1];  v[2].z = m3->m[i][2];
 			v[3].x = m4->m[i][0]; v[3].y = m4->m[i][1];  v[3].z = m4->m[i][2];
-			spline1	( t, &(v[0]), (Fvector *) &(Device.mView.m[i][0]) );
+			spline1(t, &(v[0]), (Fvector *) &(Device.mView.Matrix.r[i].m128_f32[0]));
 		}
-		
-		Fmatrix mInvCamera;
-		mInvCamera.invert(Device.mView);
-		info.n.set( mInvCamera._21, mInvCamera._22, mInvCamera._23 );
-		info.d.set( mInvCamera._31, mInvCamera._32, mInvCamera._33 );
-		info.p.set( mInvCamera._41, mInvCamera._42, mInvCamera._43 );
-		
-		fLifeTime-=Device.fTimeDelta;
+
+		Matrix4x4 mInvCamera;
+		mInvCamera.InvertMatrixByMatrix(Device.mView);
+
+		info.n.set(mInvCamera.y[0], mInvCamera.y[1], mInvCamera.y[2]);
+		info.d.set(mInvCamera.z[0], mInvCamera.z[1], mInvCamera.z[2]);
+		info.p.set(mInvCamera.w[0], mInvCamera.w[1], mInvCamera.w[2]);
+
+		fLifeTime -= Device.fTimeDelta;
 	}
 	return TRUE;
 }

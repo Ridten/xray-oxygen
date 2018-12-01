@@ -14,7 +14,7 @@
 #include "aimers_weapon.h"
 #include "aimers_bone.h"
 #include "stalker_animation_manager.h"
-#include "weapon.h"
+#include "items/weapon.h"
 
 using MonsterSpace::SBoneRotation;
 
@@ -157,22 +157,17 @@ void CSightManager::Exec_Look		(float time_delta)
 	STOP_PROFILE
 }
 
-void CSightManager::setup			(const CSightAction &sight_action)
+void CSightManager::setup(const CSightAction &sight_action)
 {
-	if (m_actions.size() > 1)
-		clear			();
-
 	if (!m_actions.empty() && (*(*m_actions.begin()).second == sight_action))
 		return;
 
-	clear				();
-	add_action			(0,xr_new<CSightControlAction>(1.f,u32(-1),sight_action));
+	clear();
+	add_action(0, xr_new<CSightControlAction>(1.f, u32(-1), sight_action));
 }
 
-void CSightManager::update			()
+void CSightManager::update()
 {
-	START_PROFILE("Sight Manager")
-
 	if (!enabled())
 		return; 
 
@@ -183,13 +178,13 @@ void CSightManager::update			()
 		return;
 	}
 
-	if (!m_turning_in_place) {
+	if (!m_turning_in_place)
+	{
 		if (angle_difference(object().movement().m_body.current.yaw,object().movement().m_head.current.yaw) > (left_angle(-object().movement().m_head.current.yaw,-object().movement().m_body.current.yaw) ? m_max_left_angle : m_max_right_angle)) {
 			m_turning_in_place	= true;
 			object().movement().m_body.target.yaw	= object().movement().m_head.current.yaw;
 		}
-		else
-			object().movement().m_body.target.yaw	= object().movement().m_body.current.yaw;
+		else object().movement().m_body.target.yaw	= object().movement().m_body.current.yaw;
 
 		inherited::update();
 		return;
@@ -198,14 +193,13 @@ void CSightManager::update			()
 	if (angle_difference(object().movement().m_body.current.yaw,object().movement().m_head.target.yaw) > EPS_L) {
 		object().movement().m_body.target.yaw	= object().movement().m_head.target.yaw;
 	}
-	else {
+	else 
+	{
 		m_turning_in_place	= false;
 		object().movement().m_body.target.yaw	= object().movement().m_body.current.yaw;
 	}
 
 	inherited::update();
-
-	STOP_PROFILE
 }
 
 void CSightManager::remove_links					(CObject *object)
@@ -250,9 +244,9 @@ Fvector	CSightManager::aiming_position() const
 
 	switch (current_action().sight_type()) {
 		case eSightTypeCurrentDirection : {
-			VERIFY2			( _valid(object().Position()), make_string("[%f][%f][%f]", VPUSH(object().Position())) );
-			VERIFY2			( _valid(-object().movement().m_head.current.yaw), make_string("%f", -object().movement().m_head.current.yaw) );
-			VERIFY2			( _valid(-object().movement().m_head.current.yaw), make_string("%f", -object().movement().m_head.current.pitch) );
+			VERIFY_FORMAT( _valid(object().Position()), "[%f][%f][%f]", VPUSH(object().Position()));
+			VERIFY_FORMAT( _valid(-object().movement().m_head.current.yaw), "%f", -object().movement().m_head.current.yaw);
+			VERIFY_FORMAT( _valid(-object().movement().m_head.current.yaw), "%f", -object().movement().m_head.current.pitch);
 			VERIFY			(
 				_valid(
 					Fvector().setHP(
@@ -270,16 +264,13 @@ Fvector	CSightManager::aiming_position() const
 				fake_distance
 			);
 
-			VERIFY2			(
-				result.magnitude() < 100000.f,
-				make_string(
+			VERIFY_FORMAT(result.magnitude() < 100000.f,
 					"[%f][%f][%f] [%f][%f] [%f]",
-					VPUSH(object().Position()),
-					-object().movement().m_head.current.yaw,
+					VPUSH(object().Position()), 
+					-object().movement().m_head.current.yaw, 
 					-object().movement().m_head.current.pitch,
-					fake_distance
-				)
-			);
+					fake_distance);
+
 			VERIFY			( _valid(result) );
 			break;
 		}
@@ -292,16 +283,12 @@ Fvector	CSightManager::aiming_position() const
 				),
 				fake_distance
 			);
-			VERIFY2			(
-				result.magnitude() < 100000.f,
-				make_string(
+			VERIFY_FORMAT(result.magnitude() < 100000.f,
 					"[%f][%f][%f] [%f][%f] [%f]",
 					VPUSH(object().Position()),
 					-object().movement().m_head.target.yaw,
 					-object().movement().m_head.target.pitch,
-					fake_distance
-				)
-			);
+					fake_distance);
 			VERIFY			( _valid(result) );
 			break;
 		}
@@ -312,40 +299,28 @@ Fvector	CSightManager::aiming_position() const
 				current_action().vector3d(),
 				fake_distance
 			);
-			VERIFY2			(
-				result.magnitude() < 100000.f,
-				make_string(
+			VERIFY_FORMAT(result.magnitude() < 100000.f,
 					"[%f][%f][%f] [%f][%f][%f] [%f]",
 					VPUSH(object().Position()),
 					VPUSH(current_action().vector3d()),
-					fake_distance
-				)
-			);
+					fake_distance);
 			VERIFY			( _valid(result) );
 			break;
 		}
 		case eSightTypePosition :
 		case eSightTypeFirePosition : {
 			result				= current_action().vector3d();
-			VERIFY2			(
-				result.magnitude() < 100000.f,
-				make_string(
+			VERIFY_FORMAT(result.magnitude() < 100000.f,
 					"[%f][%f][%f]",
-					VPUSH(current_action().vector3d())
-				)
-			);
+					VPUSH(current_action().vector3d()));
 			VERIFY			( _valid(current_action().vector3d()) );
 			break;
 		}
 		case eSightTypeObject : {
 			result				= object_position();
-			VERIFY2			(
-				result.magnitude() < 100000.f,
-				make_string(
+			VERIFY_FORMAT(result.magnitude() < 100000.f,
 					"[%f][%f][%f]",
-					VPUSH(result)
-				)
-			);
+					VPUSH(result));
 			VERIFY			( _valid(result) );
 			break;
 		}
@@ -353,25 +328,17 @@ Fvector	CSightManager::aiming_position() const
 			switch (current_action().state_fire_object()) {
 				case 0 : {
 					result		= current_action().vector3d();//object_position();
-					VERIFY2	(
-						result.magnitude() < 100000.f,
-						make_string(
+					VERIFY_FORMAT(result.magnitude() < 100000.f,
 							"[%f][%f][%f]",
-							VPUSH(result)
-						)
-					);
+							VPUSH(result));
 					VERIFY	( _valid(result) );
 					break;
 				}
 				case 1 : {
 					result		= current_action().vector3d();
-					VERIFY2			(
-						result.magnitude() < 100000.f,
-						make_string(
+					VERIFY_FORMAT(result.magnitude() < 100000.f,
 							"[%f][%f][%f]",
-							VPUSH(result)
-						)
-					);
+							VPUSH(result));
 					VERIFY	( _valid(result) );
 					break;
 				}
@@ -388,16 +355,12 @@ Fvector	CSightManager::aiming_position() const
 				),
 				fake_distance
 			);
-			VERIFY2			(
-				result.magnitude() < 100000.f,
-				make_string(
+			VERIFY_FORMAT(result.magnitude() < 100000.f,
 					"[%f][%f][%f] [%f][%f] [%f]",
 					VPUSH(object().Position()),
 					-object().movement().m_head.current.yaw,
 					-object().movement().m_head.current.pitch,
-					fake_distance
-				)
-			);
+					fake_distance);
 			VERIFY			( _valid(result) );
 			break;
 		}
@@ -410,16 +373,12 @@ Fvector	CSightManager::aiming_position() const
 				),
 				fake_distance
 			);
-			VERIFY2			(
-				result.magnitude() < 100000.f,
-				make_string(
+			VERIFY_FORMAT(result.magnitude() < 100000.f,
 					"[%f][%f][%f] [%f][%f] [%f]",
 					VPUSH(object().Position()),
 					-object().movement().m_head.current.yaw,
 					-object().movement().m_head.current.pitch,
-					fake_distance
-				)
-			);
+					fake_distance);
 			VERIFY			( _valid(result) );
 			break;
 		}
@@ -432,16 +391,12 @@ Fvector	CSightManager::aiming_position() const
 				),
 				fake_distance
 			);
-			VERIFY2			(
-				result.magnitude() < 100000.f,
-				make_string(
+			VERIFY_FORMAT(result.magnitude() < 100000.f,
 					"[%f][%f][%f] [%f][%f] [%f]",
 					VPUSH(object().Position()),
 					-object().movement().m_head.current.yaw,
 					-object().movement().m_head.current.pitch,
-					fake_distance
-				)
-			);
+					fake_distance);
 			VERIFY			( _valid(result) );
 			break;
 		}
@@ -454,21 +409,17 @@ Fvector	CSightManager::aiming_position() const
 				),
 				fake_distance
 			);
-			VERIFY2			(
-				result.magnitude() < 100000.f,
-				make_string(
+			VERIFY_FORMAT(result.magnitude() < 100000.f,
 					"[%f][%f][%f] [%f][%f] [%f]",
 					VPUSH(object().Position()),
 					-object().movement().m_head.current.yaw,
 					-object().movement().m_head.current.pitch,
-					fake_distance
-				)
-			);
+					fake_distance);
 			VERIFY			( _valid(result) );
 			break;
 		}
 		case eSightTypeAnimationDirection : {
-			result.mad			(
+			result.mad (
 				object().Position(),
 				Fvector().setHP(
 					-object().movement().m_body.current.yaw,
@@ -476,29 +427,21 @@ Fvector	CSightManager::aiming_position() const
 				),
 				fake_distance
 			);
-			VERIFY2			(
-				result.magnitude() < 100000.f,
-				make_string(
+			VERIFY_FORMAT(result.magnitude() < 100000.f,
 					"[%f][%f][%f] [%f][%f] [%f]",
 					VPUSH(object().Position()),
 					-object().movement().m_head.current.yaw,
 					-object().movement().m_head.current.pitch,
-					fake_distance
-				)
-			);
+					fake_distance);
 			VERIFY			( _valid(result) );
 			break;
 		}
 		default : NODEFAULT;
 	}
 
-	VERIFY2					(
-		result.magnitude() < 100000.f,
-		make_string(
-			"[%f][%f][%f] [%f][%f] [%f]",
-			VPUSH(result)
-		)
-	);
+	VERIFY_FORMAT(result.magnitude() < 100000.f,
+			"[%f][%f][%f]",
+			VPUSH(result));
 	VERIFY					( _valid(result) );
 	return						(result);
 }

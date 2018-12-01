@@ -14,9 +14,8 @@
 #include "xrServer.h"
 #include "client_spawn_manager.h"
 #include "../xrEngine/igame_persistent.h"
-#include "game_cl_base.h"
 #include "UIGame.h"
-#include "UI/UIDialogWnd.h"
+#include "../xrUICore/UIDialogWnd.h"
 #include "../xrEngine/date_time.h"
 #include "ai_space.h"
 #include "level_graph.h"
@@ -41,7 +40,7 @@
 #include "ui/UIMainIngameWnd.h"
 #include "ui/UIMap.h"
 #include "ui/UIMotionIcon.h"
-
+#include "patrol_path.h"
 
 using namespace luabind;
  bool single_game()
@@ -118,7 +117,7 @@ CScriptGameObject *get_object_by_id(u16 id)
 
 LPCSTR get_weather	()
 {
-	return			(*g_pGamePersistent->Environment().GetWeather());
+	return			(*Environment().GetWeather());
 }
 
 void set_weather	(LPCSTR weather_name, bool forced)
@@ -126,7 +125,7 @@ void set_weather	(LPCSTR weather_name, bool forced)
 #ifdef INGAME_EDITOR
 	if (!Device.editor())
 #endif // #ifdef INGAME_EDITOR
-		g_pGamePersistent->Environment().SetWeather(weather_name,forced);
+		Environment().SetWeather(weather_name,forced);
 }
 
 bool set_weather_fx	(LPCSTR weather_name)
@@ -134,7 +133,7 @@ bool set_weather_fx	(LPCSTR weather_name)
 #ifdef INGAME_EDITOR
 	if (!Device.editor())
 #endif // #ifdef INGAME_EDITOR
-		return		(g_pGamePersistent->Environment().SetWeatherFX(weather_name));
+		return		(Environment().SetWeatherFX(weather_name));
 	
 #ifdef INGAME_EDITOR
 	return			(false);
@@ -146,7 +145,7 @@ bool start_weather_fx_from_time	(LPCSTR weather_name, float time)
 #ifdef INGAME_EDITOR
 	if (!Device.editor())
 #endif // #ifdef INGAME_EDITOR
-		return		(g_pGamePersistent->Environment().StartWeatherFXFromTime(weather_name, time));
+		return		(Environment().StartWeatherFXFromTime(weather_name, time));
 	
 #ifdef INGAME_EDITOR
 	return			(false);
@@ -155,17 +154,17 @@ bool start_weather_fx_from_time	(LPCSTR weather_name, float time)
 
 bool is_wfx_playing	()
 {
-	return			(g_pGamePersistent->Environment().IsWFXPlaying());
+	return			(Environment().IsWFXPlaying());
 }
 
 float get_wfx_time	()
 {
-	return			(g_pGamePersistent->Environment().wfx_time);
+	return			(Environment().wfx_time);
 }
 
 void stop_weather_fx()
 {
-	g_pGamePersistent->Environment().StopWFX();
+	Environment().StopWFX();
 }
 
 void set_time_factor(float time_factor)
@@ -186,8 +185,9 @@ float get_time_factor()
 void set_game_difficulty(ESingleGameDifficulty dif)
 {
 	g_SingleGameDifficulty = dif;
-	Level().game->OnDifficultyChanged();
+	Actor()->OnDifficultyChanged();
 }
+
 ESingleGameDifficulty get_game_difficulty()
 {
 	return g_SingleGameDifficulty;
@@ -221,7 +221,7 @@ void change_game_time(u32 days, u32 hours, u32 mins)
 		u32 value		= days*86400+hours*3600+mins*60;
 		float fValue	= static_cast<float> (value);
 		value			*= 1000;//msec		
-		g_pGamePersistent->Environment().ChangeGameTime(fValue);
+		Environment().ChangeGameTime(fValue);
 		Level().Server->game->alife().time_manager().change_game_time(value);
 	}
 }
@@ -242,7 +242,7 @@ float low_cover_in_direction(u32 level_vertex_id, const Fvector &direction)
 
 float rain_factor()
 {
-	return			(g_pGamePersistent->Environment().CurrentEnv->rain_density);
+	return			(Environment().CurrentEnv->rain_density);
 }
 
 u32	vertex_in_direction(u32 level_vertex_id, Fvector direction, float max_distance)
@@ -430,7 +430,7 @@ cphysics_world_scripted* physics_world_scripted()
 }
 CEnvironment *environment()
 {
-	return		(g_pGamePersistent->pEnvironment);
+	return		(&Environment());
 }
 
 CEnvDescriptor *current_environment(CEnvironment *self)
@@ -749,8 +749,8 @@ u8 get_active_cam()
 void set_active_cam(u8 mode)
 {
 	CActor* actor = smart_cast<CActor*>(Level().CurrentViewEntity());
-	if (actor && mode <= ACTOR_DEFS::EActorCameras::eacMaxCam)
-		actor->cam_Set((ACTOR_DEFS::EActorCameras)mode);
+	if (actor && mode <= EActorCameras::eacMaxCam)
+		actor->cam_Set((EActorCameras)mode);
 }
 
 CScriptGameObject* get_view_entity_script()
@@ -793,6 +793,14 @@ u32 get_vertex_count(CLevelGraph *graph)
 	return graph->header().vertex_count(); 
 }
 
+void patrol_path_add(LPCSTR patrol_path, CPatrolPath* path) {
+	ai().patrol_paths_raw().add_path(shared_str(patrol_path), path);
+}
+
+void patrol_path_remove(LPCSTR patrol_path) {
+	ai().patrol_paths_raw().remove_path(shared_str(patrol_path));
+}
+
 #include "../../SDK/include/luabind/operator.hpp"
 #include "../../SDK/include/luabind/out_value_policy.hpp"
 
@@ -813,6 +821,8 @@ void CLevel::script_register(lua_State *L)
 			.property("level_id", &get_level_id)
 			.property("vertices_count", &get_vertex_count),
 
+		def("patrol_path_add", &patrol_path_add),
+		def("patrol_path_remove", &patrol_path_remove),
 		def("u_event_gen", &u_event_gen), //Send events via packet
 		def("u_event_send", &u_event_send),
 	    def("send", &g_send),

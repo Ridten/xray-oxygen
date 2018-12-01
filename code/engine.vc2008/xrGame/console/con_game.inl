@@ -98,14 +98,16 @@ public:
 };
 
 // console commands
-class CCC_GameDifficulty : public CCC_Token {
+class CCC_GameDifficulty : public CCC_Token 
+{
 public:
 	CCC_GameDifficulty(LPCSTR N) : CCC_Token(N,(u32*)&g_SingleGameDifficulty,difficulty_type_token)  {};
-	virtual void Execute(LPCSTR args) {
+	virtual void Execute(LPCSTR args) 
+	{
 		CCC_Token::Execute(args);
-		if (g_pGameLevel && Level().game)
+		if (Actor())
 		{
-			Level().game->OnDifficultyChanged	();
+			Actor()->OnDifficultyChanged();
 		}
 	}
 	virtual void	Info	(TInfo& I)		
@@ -585,7 +587,7 @@ public:
             return;
 
         if (!Device.editor())
-            g_pGamePersistent->Environment().SetWeather(args, true);
+            Environment().SetWeather(args, true);
     }
 
 	virtual void fill_tips(vecTips& tips, u32 mode)
